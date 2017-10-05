@@ -1,0 +1,72 @@
+<?php
+
+/**
+* Multi Sites: Admin Config
+*
+* This file forms part of the Multi Sites Suite.
+* Saves superuser account on site install.
+*
+* @author Francis Otieno (Kongondo)
+* @version 0.0.1
+*
+* This is a Free Module.
+*
+* ProcessMultiSites for ProcessWire
+* Copyright (C) 2017 by Francis Otieno
+* This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+*
+*/
+
+require($config->paths->adminTemplates . 'controller.php'); 
+
+function adminAccountSave($values) {
+
+    $users = wire('users');
+    $pages = wire('pages');
+    $config = wire('config');
+    $roles = wire('roles');
+
+    $superuserRole = $roles->get("name=superuser");
+    $user = $users->get($config->superUserPageID); 
+
+    if(!$user->id) {
+        $user = new User(); 
+        $user->id = $config->superUserPageID; 
+    }
+
+    $user->name = $values['superUserName'];
+    $user->pass = $values['superUserPassword'];
+    $user->email = $values['superUserEmail'];
+    $user->admin_theme = $values['adminTheme'];
+
+    if(!$user->roles->has("superuser")) $user->roles->add($superuserRole); 
+
+    $admin = $pages->get($config->adminRootPageID); 
+    $admin->of(false);
+    $admin->name = $values['adminLoginName'];    
+
+    try {
+        adminThemeSave($values['colourTheme'], $values['adminTheme']);// save first so can set to user
+        $users->save($user); 
+        $pages->save($admin);        
+    } 
+    
+    catch(Exception $e) {
+        $result = $e->getMessage();
+    }
+    
+    // @todo:? how to retun results? Even JSON did not seem to work? Not important though
+    return $result;    
+
+}
+
+function adminThemeSave($colour, $theme) {
+    $modules = wire('modules');
+    $theme = $modules->getInstall($theme); 
+    $configData = $modules->getModuleConfigData($theme); 
+    $configData['colors'] = $colour;
+    $modules->saveModuleConfigData($theme, $configData);   
+}
+
+/*** INSTALLER CONFIG ********************************************************************/
+

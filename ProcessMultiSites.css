@@ -1,0 +1,207 @@
+/**
+*
+* CSS styles for the ProcessWire Module Multi Sites (Process)
+*
+* @author Francis Otieno (Kongondo)
+*
+* Copyright (C) 2017 by Francis Otieno
+*
+*/
+
+/** divs **/
+div.ms_hide {display: none}
+div#ms_menu {margin-bottom: 2em;}
+
+div#ms_create_wrapper,
+div#ms_cleanup_wrapper,
+div#ms_profile_upload_wrapper,
+div#ms_installed_sites_wrapper,
+div#ms_profiles_wrapper,
+div#ms_missing_components_wrapper {
+    border: 1px solid #d9e1ea;
+	padding: 1em;
+	height:auto;
+}
+
+div#ms_menu:after, div#ms_settings:after {
+    content:'';
+    display:block;
+    clear: both;
+}
+
+div.ms_setting {float: left; padding: 0 1em;}
+div.ms_setting:first-child {width: 35%;}
+div.ms_setting:last-child {width: 65%; margin-top: 2.5em;}
+div.ms_section, div.ms_setting_header {width: 100%; clear:left;}
+div.ms_section, div.ms_cleanup_header {background-color: #E8E8E8; padding: 0.25em 1em;}
+div#ms_cleanup_warning, div#ms_profile_upload_notice {background-color: #000; color: #FFF; padding: 1px 7px; margin-bottom: 2em; border-radius: 3px;}
+
+div.ms_installed_sites, div.ms_profiles {
+	/* overflow: hidden; */
+    margin-top: 1em;
+    padding: 0 0 1em 0;
+    border-bottom: 1px dotted rgba(0,0,0,0.20);
+}
+
+div.ms_profiles, div.ms_installed_sites {position: relative}
+
+div#ms_top_strip_actions {
+    margin-bottom: 1em;
+    height: 50px;
+    border-bottom: 1px dotted rgba(0,0,0,0.20);
+}
+
+div#ms_top_action_selects, div#ms_top_pagination {
+    width: 50%;
+    float: left;
+}
+
+/* div.ms_popup {background-color: #FFF; min-height: 200px; margin: 0 auto; width: 70%; } */
+div#ms_edit_profile {background-color: #FFF; margin: 0 5%; position: relative}
+div#ms_popups_close {position: absolute; top: 0; left: 0;  color: #FFF; padding: 5px 10px; margin: 0 5%; width: 90%}
+div#ms_validation, div#ms_installed_sites_action_confirm, div#ms_no_item_selected {background-color: #FFF; min-height: 200px; margin: 34px 5%;  padding: 20px;}
+
+
+/** headers **/
+div.ms_installed_sites h2, div.ms_profiles h2 {font-weight: bold; display: inline-block; margin-left: 1.5em;}
+h2#ms_validation_header, h2#ms_installed_sites_action_confirm_header, h2#ms_no_item_selected_header {font-weight: bold; font-size: 1.20em;}
+div.ms_section h2#ms_installed_sites_action_confirm_header {margin: 0.25em 0;}
+
+/** label **/
+div#ms_settings label, div#ms_profile_upload label, div#ms_profile_upload span.ms_radio_header {display: block; margin: 0.75em 0; font-weight: bold;}
+div#ms_profile_upload label.ms_radio {display: inline-block; margin-left: 0.5em; margin-right: 1em;}
+div.ms_cleanup_items ol li label {margin-right: 0.5em;}
+
+/** inputs **/
+div#ms_settings .ms_required, div#ms_profile_upload .ms_required {background-color: #fed6da;}
+div#ms_settings input[type=text],
+div#ms_settings input[type=email],
+div#ms_settings input[type=password],
+div#ms_settings select,
+div#ms_settings textarea,
+div#ms_profile_upload input[type=text],
+div#ms_profile_upload textarea {
+	width: 95%; margin-bottom: 1em;
+}
+
+div#ms_profile_upload input[type=text],
+div#ms_profile_upload textarea {
+	width: 100%;
+}
+
+div#ms_settings input, div#ms_profile_upload input {padding: 0.3em 0.5em;}
+div#ms_profile_upload  input[type=file] {padding-left: 0}
+
+div#ms_top_action_selects input#ms_toggle_all,
+div.ms_installed_sites input[type=checkbox],
+div.ms_profiles input[type=checkbox],
+div#ms_top_action_selects select#ms_items_action_select,
+div#ms_top_action_selects select#limit {
+	margin-right: 1em;
+}
+
+div.ms_cleanup_items ol li span input[type=checkbox],
+div.ms_installed_sites input[type=checkbox],
+div.ms_profiles input[type=checkbox],
+input#ms_toggle_all,
+div#ms_profile_upload input[type=radio] {
+    width: 20px;
+    height: 20px;
+    vertical-align: bottom;
+    padding: 0;
+    margin: 0;
+    margin-left: 0.35em;
+    position: relative;
+	top: -3px;
+}
+
+div#ms_profile_upload input[type=radio],
+div.ms_installed_sites input[type=checkbox],
+div.ms_profiles input[type=checkbox] {
+	vertical-align:middle;
+}
+div#ms_profile_upload input[type=radio] {top: -1px;}
+div.ms_installed_sites input[type=checkbox], div.ms_profiles input[type=checkbox]{top: -2px;}
+
+/** button **/
+button#ms_create_btn,
+button#ms_installed_btn,
+button#ms_profiles_btn,
+button#ms_upload_btn,
+button#ms_cleanup_btn,
+button#ms_edit_profile_btn,
+button#ms_installed_sites_action_confirm_btn,
+button#ms_installed_sites_action_cancel_btn,
+button#ms_upload_and_view_btn,
+button#ms_create_and_view_btn {
+	margin-top: 2em;
+}
+
+/** paragraph **/
+div#ms_create_wrapper p {margin: 0;}
+div#ms_installed_sites_action_confirm p.ms_confirm_list {margin-top: 1em; font-weight: bold; }
+div.mfp-content p.ms_error {margin-top: 1em;}
+
+/** span **/
+div.ms_cleanup_items ol li span {float: right;}
+div.ms_installed_sites span, div.ms_profiles span {display: block; font-style: italic; font-size: 0.95em;}
+div#ms_popups_close span.mfp-close {font-weight: bold; cursor: pointer; color: #FFF; margin-top: -5px;}
+
+
+/** small **/
+div#ms_create_wrapper small {font-weight: normal;}
+div.ms_profiles small.ms_locked, div.ms_installed_sites small.ms_locked {
+	/* position: absolute;
+	top: 0;
+	right: 0; */
+	color: red;
+	color:#FFF;
+	font-size: 80%;
+	margin-left: 0.75em;
+	background: rgb(0, 0, 0);
+	border-radius: 3px;
+	padding: 0 0.25em;
+}
+
+
+
+/** list **/
+ul.ms_menu {
+	width:100%;
+	padding:0;
+	margin:0 0 0 0.5em;
+	list-style-type:none;
+}
+
+ul.ms_menu li {display: table-cell; width: 16.6666666%;  /* (100 / numItems)% */ text-align: center;}
+li.Inputfield_ms_filter_settings_save_btn,
+li.Inputfield_ms_filter_settings_save_view_btn,
+li.Inputfield_ms_filter_profiles_go_btn,
+li.Inputfield_ms_edit_filter_config_btn  {
+	display: inline-block !important;
+}
+ul.ms_menu > li {display:inline;}
+
+ol#ms_validation_errors, ol#ms_installed_sites_delete_files_confirm_list, ol#ms_installed_sites_delete_databases_confirm_list {margin-top: 1em;}
+ol#ms_validation_errors li,
+ol#ms_installed_sites_delete_files_confirm_list li,
+ol#ms_installed_sites_delete_databases_confirm_list li{
+	display: list-item;	list-style-position: inside; list-style-type: decimal;
+}
+
+div#ms_top_pagination ul.MarkupPagerNav, div#ms_bottom_pagination ul.MarkupPagerNav {float: right; margin: 0}
+div#ms_bottom_pagination ul.MarkupPagerNav {margin-top: 3em;}
+
+/** anchor **/
+a.ms_menu_item {
+	float:left;
+	width:6em;
+	text-decoration:none;
+	color:inherit;
+	padding:0.2em 0.6em;
+	font-size: 1.15em;
+	font-weight: bold;
+	margin-left: -20px;
+}
+
+a.ms_on {color: #f64704;}

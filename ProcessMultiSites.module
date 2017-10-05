@@ -1,0 +1,569 @@
+<?php
+
+/**
+* Multi Sites: Process
+*
+* This file forms part of the Multi Sites Suite.
+* Enables the creation of new site installations for use in a multi-sites setup.
+* Sites are installed using a specified site profile.
+* Site profiles are uploaded to and managed by the module.
+* Installed sites' directories and databases can be deleted via the modules.
+* Installed site domain must be active prior to its installation!
+*
+* Uses:
+*	- site development: temporary sites, testing configurations, etc.
+*	- production (multi-sites) environment.
+*
+* @author Francis Otieno (Kongondo)
+*
+* This is a Free Module.
+* Some code lifted from the official ProcessWire installer (install.php).
+*
+* ProcessMultiSites for ProcessWire
+* Copyright (C) 2017 by Francis Otieno
+* This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+*
+*/
+
+define("PROCESSWIRE_INSTALL", 2.7);// @todo: can this be made configurable?
+
+
+class ProcessMultiSites extends Process implements Module, ConfigurableModule {
+
+	/**
+	 * Return information about this module (required).
+	 *
+	 * @access public
+	 * @return array of information.
+	 *
+	 */
+	public static function getModuleInfo() {
+		
+		return array(
+			'title' => 'Multi Sites (Process)',
+			'author' => 'Francis Otieno (Kongondo)',
+			'version' => 1,
+			'href' => 'http://multisites.kongondo.com',
+			'summary' => 'Multi Sites Installer and Manager.',
+			'singular' => true,
+			'autoload' => false,
+			'permission' => 'multi-sites',
+		);
+	
+	}
+		
+	const PAGE_NAME = 'multi-sites';// this process' name
+
+	/**
+	 * Whether or not we force installed files to be copied. 
+	 *
+	 * If false, we attempt a faster rename of directories instead.
+	 *
+	 */
+	//const FORCE_COPY = true;// @note: original
+	const FORCE_COPY = false;// @note: amended this
+	
+	/**
+	 * Replace existing database tables if already present?.
+	 *
+	 */
+	const REPLACE_DB = true; 
+
+	/**
+	 * Minimum required PHP version to install ProcessWire.
+	 *
+	 */
+	const MIN_REQUIRED_PHP_VERSION = '5.3.8';
+
+	/**
+	 * Test mode for installer development, non destructive.
+	 *
+	 */
+	const TEST_MODE = false;
+
+	/**
+	 * File permissions, determined in the dbConfig function.
+	 *
+	 * Below are last resort defaults.
+	 *
+	 */
+	protected $chmodDir = "0777";
+	protected $chmodFile = "0666";
+
+	/**
+	 * For reference to an installed site's directory.
+	 *
+	 * For instance, site-mysite, site-devsite, etc.
+	 * @note: we don't include the prefix 'site'.
+	 * 
+	 */
+	protected $siteDirectory;
+
+	/**
+	 * For reference to the temporary directory containing the profile being installed as a new site.
+	 *
+	 * For instance, the 'site-default' that will be renamed to 'site-mysite'.
+	 * 
+	 */
+	protected $profileTopDirectory;
+
+	/**
+	 * Available color themes
+	 *
+	 */
+	protected $colours = array(
+		1 => 'classic',
+		2 => 'warm',
+		3 => 'modern',
+		4 => 'futura',
+		5 => 'reno',
+		6 => 'blue',
+	);
+
+	/**
+	 * Available admin themes
+	 * 
+	 */
+	 protected $adminThemes = array(
+		1 => 'AdminThemeDefault',
+		2 => 'AdminThemeReno',
+	);
+
+	/**
+     * For userfeedback notices.
+	 * 
+     */
+	protected $notices = array();
+	
+	/**
+     * For updating sites.json when sites deleted.
+	 * 
+     */
+    protected $removedSites = array();
+
+	/**
+	 * Temporary system directory to upload profiles to.
+	 *
+	 */
+	protected $privateTempUploadsDir;
+	
+	/**
+	 * Temporary system directory to install sites to.
+	 *
+	 */
+	protected $privateTempSitesDir;
+	
+	/**
+	 * For checking if cleanup has been deployed.
+	 *
+	 */
+	protected $multisitesFullyInstalled;
+	
+	/**
+	 * string name of the cookie used to save limit of items to show per page in various dashboards.
+	 *
+	 */
+	protected $cookieLimitName;
+	
+	/**
+	 * int value of number of items to show per page in respective dashboard pages.
+	 *
+	 */
+	protected $showLimit;
+
+	/**
+	 * Common image extensions for validating image file uploads.
+	 * 
+	 * @note: not currently in use.
+	 *
+	 */
+	protected $commonImageExts = array('commonImageExts' => array('jpg', 'jpeg', 'gif', 'png', 'svg'));
+		
+	/**
+	 * For uploaded image validations.
+	 * 
+	 * The image type constants.
+	 * @note: not currently in use.
+	 *
+	 */
+	protected $imageTypeConstants = array('imageTypeConstants' => array('gif' => IMAGETYPE_GIF, 'jpeg' => IMAGETYPE_JPEG, 'jpg' => IMAGETYPE_JPEG, 'png' => IMAGETYPE_PNG));
+
+	/**
+	 * Allowed non-image file mime types.
+	 * 
+	 * Used for profile zip file uploads' validation.
+	 *
+	 */
+	protected $allowedNonImageMimeTypes = array('allowedNonImageMimeTypes'=>array('application/x-compressed','application/x-zip-compressed','application/zip','multipart/x-zip'));
+
+	/* ######################### - SET UP - ######################### */
+
+	/**
+	 * Set some key properties for use throughout the class.
+	 *
+	 * @access public
+	 *
+	 */
+    public function __construct() {
+
+		foreach(self::configDefaults() as $key => $value) {$this->$key = $value;}// @todo: needed?
+		
+		$this->multisitesFullyInstalled = true;
+		
+		$config = $this->wire('config');
+		$input = $this->wire('input');
+
+		// include helper classes
+		$dir = dirname(__FILE__);
+		require_once("$dir/MultiSitesRender.php");
+		require_once("$dir/MultiSitesUtilities.php");
+		require_once("$dir/MultiSitesActions.php");
+
+		/******** - BUILD NOTICES ARRAY - *******/
+        $this->notices['messages'] = array();
+        $this->notices['errors'] = array();
+        $this->notices['warnings'] = array();
+			
+
+		/******** - TEMP WORKING DIRECTORIES - *******/
+
+		$path = $config->paths->assets . 'MultiSites/';
+
+		// private temp uploads directory
+		$this->privateTempUploadsDir = $path . '.multi_sites_uploads/';// @note: set as system path
+		// create the directory if it doesn't exist
+		if(!is_dir($this->privateTempUploadsDir)) wireMkdir($this->privateTempUploadsDir, true);
+		// private temp sites directory
+		$this->privateTempSitesDir = $path . '.multi_sites/';
+		if(!is_dir($this->privateTempSitesDir)) wireMkdir($this->privateTempSitesDir, true);// @note: set as system path
+
+		// cookie per user and per relevant items dashboard
+		$this->cookieLimitName = $this->wire('user')->id . '-processMultiSites-limit-' . $this->wire('input')->urlSegment1;
+		// default number of items to show per respective dashboard if no custom limit set (via post/session cookie).
+		$this->showLimit = 10;
+
+
+	}
+		
+	/**
+	 * Initialise the module. This is an optional initialisation method called before any execute methods.
+	 *
+	 * Initialises various class properties ready for use throughout the class.
+	 *
+	 * @access public
+	 *
+	 */
+	public function init() {
+
+		// @access-control: multi sites
+		/* if ($this->permissions->get('multi-sites')->id && !$this->user->hasPermission('multi-sites'))
+				throw new WirePermissionException($this->_('Multi Sites: You have no permission to use this module.')); */
+		// only superusers!
+		if ( !$this->wire('user')->isSuperuser() )
+		throw new WirePermissionException($this->_('Multi Sites: You have no permission to use this module.'));
+
+		parent::init();
+
+		$modules = $this->wire('modules');
+		$pages = $this->wire('pages');
+
+		$modules->get('Jquery');
+		$ui = $modules->get('JqueryUI');
+		$ui->use('modal');
+		$modules->get('JqueryMagnific');
+
+		// Get the module config data to check if Multi Sites components are available
+		$data = $this->getDefaultSettings();
+		// if multisitesFullyInstalled == 0, we show error
+		if(isset($data['multisitesFullyInstalled']) && $data['multisitesFullyInstalled'] == 0) $this->multisitesFullyInstalled = false;
+		
+		$this->msRender = new MultiSitesRender();
+		$this->msUtilities = new MultiSitesUtilities();
+
+		$config = $this->wire('config');
+		$url = $config->urls->$this;
+
+		// get sanitised url segments
+		$urlSegments = $this->msUtilities->getURLSegments();
+		$this->urlSeg1 = $urlSeg1 =  $urlSegments[0];
+		$this->urlSeg2 = $urlSeg2 =  (int) $urlSegments[1];// ID of site profile page being edited
+
+		$session = $this->wire('session');
+		$url = $this->wire('page')->url;
+		if(!$this->multisitesFullyInstalled && $this->urlSeg1 && strpos($url, 'multi-sites')) $session->redirect($url);
+
+		$this->notices = $this->msUtilities->requiredModuleFilesCheck($this->notices);
+		if(count($this->notices['errors']) && $this->multisitesFullyInstalled){
+			$this->msUtilities->runNotices($this->notices['errors'], 2);
+			// @note: only needs to run in this module's page
+			throw new WirePermissionException($this->_("Required modules files missing. Please check that you have the files 'sites.json' and 'index.config.php' in your ProcessWire root folder."));
+		}
+
+	}
+
+	/**
+	 * 	Default module configuration values.
+	 *
+	 * @access public
+	 * @return array Array with value to denote whether multi sites is fully installed.
+	 *
+	 */
+	public static function configDefaults () {
+		// boolean 0=false {new install}; 1=true {Multi Sites fully installed - i.e. including site files and pages}
+		return array('multisitesFullyInstalled' => 0);
+	}
+
+	/**
+	 * Module configuration interface.
+	 *
+	 * Displayed in module configuration screen.
+	 * This is a ProcessWire method.
+	 * User configurable values stored in the database.
+	 *
+	 * @access public
+	 * @return mixed $form rendered form.
+	 *
+	 */
+	public static function getModuleConfigInputfields(array $data) {
+
+		// create the config screen
+		$form = new InputfieldWrapper();		
+		$m = new InputfieldMarkup;
+		$m->label = __('Uninstall Warning');
+
+		$cleanupURL = '<a target="_blank" href="' . wire('config')->urls->admin . 'multi-sites/cleanup/">' . __('Cleanup utility') . '</a>';
+
+		$warning = '<h3 class="warning notes">';
+		$warning .= sprintf(__('Do not uninstall Multi Sites until AFTER you have run the %s'), $cleanupURL);
+		$warning .= ' ' . __(' unless you only want to keep your Multi Sites Pages without using the module.');
+		$warning .= '</h3>';
+
+		$m->attr('value', $warning);
+		$form->add($m);
+
+		return $form;
+
+	}
+
+	/**
+	 * Return an array of this module's saved configuration settings: key=>value pairs.
+	 *
+	 * @access protected
+	 * @return array $settings module's saved configuration settings
+	 *
+	 */
+	protected function getDefaultSettings() {
+		$settings = $this->wire('modules')->getModuleConfigData($this);
+		return $settings;
+	}
+
+	/**
+	 * Execution controller.
+	 * 
+	 * @access public
+	 * @return string $out Markup of rendered module page.
+	 *
+	 */
+	public function execute() {
+
+		// cleanup was deployed, show different page
+		if(!$this->multisitesFullyInstalled) return $this->msRender->renderMultiSitesComponentsMissing();
+
+		if(self::TEST_MODE) {
+			error_reporting(E_ALL | E_STRICT);
+			ini_set('display_errors', 1);
+		}
+
+		$out = $this->msRender->renderSitesInstalled();
+		return $out;
+
+	}
+
+	/**
+	 * Show site creation form.
+	 *
+	 * @access public
+	 * @return string $out Markup of rendered site creation form.
+	 *
+	 */
+	public function executeCreate() {
+		$out = $this->msRender->renderSitesCreate();
+		return $out;
+	}
+
+	/**
+	 * Show available site profiles.
+	 *
+	 * @access public
+	 * @return string $out Markup of rendered available site profiles.
+	 *
+	 */
+	 public function executeProfiles() {
+		$out = $this->msRender->renderSitesProfiles();
+		return $out;
+	}
+
+	/**
+	 * Show site profiles' upload form.
+	 *
+	 * @access public
+	 * @return string $out Markup of rendered profiles upload form.
+	 *
+	 */
+	 public function executeUpload() {
+		$out = $this->msRender->renderSitesProfilesUpload();
+		return $out;
+	}
+
+	/**
+	 * Show module cleanup form.
+	 *
+	 * @access public
+	 * @return string $out Markup of rendered cleanup form.
+	 *
+	 */
+	 public function executeCleanup() {
+		$out = $this->msRender->renderSitesCleanup();
+		return $out;
+	}
+
+	/* ######################### - OTHER - ######################### */
+
+
+	/**
+	 * Determine and set the number of items to show per paginated page.
+	 *
+	 * Sets a cookie to preserve state of selected number of items to show.
+	 * This is for various dashboards inlcuding installed sites and profiles list.
+	 *
+	 * @access protected
+	 *
+	 */
+	protected function setItemsShowLimit() {
+		$post = $this->wire('input')->post;
+		$cookie = $this->wire('input')->cookie;
+		// if user selects a limit ($input->post->show_limit) we set that as the limit and set a cookie {see $this->cookieLimitName} with that value to save state for session.
+		if((int)$post->show_limit) {
+			$this->showLimit = (int) $post->show_limit;
+			setcookie($this->cookieLimitName, $this->showLimit , 0, '/');
+		}
+		// if no custom limit selected but there is a cookie set, we use the cookie value
+		elseif($cookie[$this->cookieLimitName]) $this->showLimit = (int) $cookie[$this->cookieLimitName];
+    }
+
+	/* ######################### - INSTALLERS - ######################### */
+
+	/**
+	 * Calls Multi Sites installer.
+	 *
+	 * Used by this module's installer.
+	 * Called only once during module install.
+	 * 
+	 * @param null|integer $mode Whether to verify if install possible (null) or commence install (1).
+	 * @return void
+	 */
+	private function msInstaller($mode) {		
+		require_once(dirname(__FILE__) . '/MultiSitesInstaller.php');
+		$msi = new MultiSitesInstaller();
+		return $msi->verifyInstall($mode);
+	}		
+
+	/**
+	 * Called once only when installing the module.
+	 *
+	 * Creates a page for this process and a permission for the module.
+	 * Also calls the module's installer to install required components.
+	 *
+	 * @access public
+	 *
+	 */
+	public function ___install() {		
+		
+		// create ProcessMultiSiteso admin page and permission if MultiSitesInstaller was successful in its validation
+		if($this->msInstaller($mode = null) == true) {
+			$page = new Page();
+			$page->template = 'admin';
+			$page->parent = $this->wire('pages')->get($this->wire('config')->adminRootPageID);
+			$page->title = 'Multi Sites';
+			$page->name = self::PAGE_NAME;
+			$page->process = $this;
+			#$page->addStatus(Page::statusHidden);
+			$page->save();
+
+			$this->msInstaller($mode = 1);// run MultiSitesInstaller
+
+			// tell the user we created this page
+			$message = $this->_('Multi Sites: Created page');
+			$message .= ' ' . $page->path;
+			$this->message($message);
+
+		}
+
+		else throw new WireException($this->_('Multi Sites: Installation aborted. Check and fix reported errors first.'));
+
+		// create the permission 'multi-sites' to limit access to the module @note: currently, only superusers
+		$perms = array('multi-sites' => $this->_('Use Multi Sites'));
+
+		foreach ($perms as $k => $v) {
+			$permission = $this->wire('permissions')->get($k);
+			if (!$permission->id) {
+				$p = new Permission();
+				$p->name = $k;
+				$p->title = $v;
+				$p->save();
+			}
+		}
+
+		// tell the user we created this module's permissions
+		$message = $this->_('Multi Sites: Created new permission multi-sites.');
+		$this->message($message);
+
+	}
+	
+	/**
+	 * Called only when uninstalling the module.
+	 *
+	 * Uninstalls the module, deletes the process page and the permission that were created on install.
+	 *
+	 * @access public
+	 *
+	 */
+	public function ___uninstall() {
+
+		// find and delete the page we installed, locating it by the process field (which has the module ID)
+		// it would probably be sufficient just to locate by name, but this is just to be extra sure.
+		$moduleID = $this->wire('modules')->getModuleID($this);
+		// @note/@see executeCleanup()
+		$page = $this->wire('pages')->get("template=admin, process=$moduleID, name=" . self::PAGE_NAME);
+		// $page = $this->wire('pages')->get('template=admin, name='.self::PAGE_NAME);
+
+		if($page->id) {
+			// if we found the page, let the user know and delete it
+			$message = $this->_('Multi Sites: Deleted page');
+			$message .= ' ' . $page->path;
+			$this->message($message);
+			$this->wire('pages')->delete($page);
+		}
+
+		// find and delete the 'multi-sites'permission and let the user know
+		$perms = array('multi-sites');
+
+		foreach ($perms as $perm) {
+			$permission = $this->permissions->get($perm);
+			if ($permission->id) {
+				$permission->delete();
+			}
+		}
+
+		// tell the user we created this module's permission
+		$message = $this->_('Multi Sites: Deleted permission multi-sites.');
+		$this->message($message);
+		
+
+	}
+
+
+	
+
+
+}
