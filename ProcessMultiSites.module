@@ -4,15 +4,16 @@
 * Multi Sites: Process
 *
 * This file forms part of the Multi Sites Suite.
-* Enables the creation of new site installations for use in a multi-sites setup.
+* Enables the creation of new site installations for use in both single and multi-sites setup.
 * Sites are installed using a specified site profile.
 * Site profiles are uploaded to and managed by the module.
 * Installed sites' directories and databases can be deleted via the modules.
 * Installed site domain must be active prior to its installation!
+* Multiple ways to install sites
 *
 * Uses:
 *	- site development: temporary sites, testing configurations, etc.
-*	- production (multi-sites) environment.
+*	- production (multi-sites and standalone sites) environment.
 *
 * @author Francis Otieno (Kongondo)
 *
@@ -25,8 +26,8 @@
 *
 */
 
-define("PROCESSWIRE_INSTALL", 2.7);// @todo: can this be made configurable?
-
+// @todo: do we need this?
+#define("PROCESSWIRE_INSTALL", 2.7);
 
 class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 
@@ -42,9 +43,9 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 		return array(
 			'title' => 'Multi Sites (Process)',
 			'author' => 'Francis Otieno (Kongondo)',
-			'version' => 1,
+			'version' => 2,
 			'href' => 'http://multisites.kongondo.com',
-			'summary' => 'Multi Sites Installer and Manager.',
+			'summary' => 'Sites installer and manager for both multi-sites and single-sites setups.',
 			'singular' => true,
 			'autoload' => false,
 			'permission' => 'multi-sites',
@@ -109,7 +110,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 
 	/**
 	 * Available color themes
-	 *
+	 * @todo: maybe move to a config (JSON?) file?
 	 */
 	protected $colours = array(
 		1 => 'classic',
@@ -122,11 +123,12 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 
 	/**
 	 * Available admin themes
-	 * 
+	 * @todo: maybe move to a config (JSON?) file?
 	 */
 	 protected $adminThemes = array(
 		1 => 'AdminThemeDefault',
 		2 => 'AdminThemeReno',
+		3 => 'AdminThemeUikit',
 	);
 
 	/**
@@ -134,7 +136,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 * 
      */
 	protected $notices = array();
-	
+
 	/**
      * For updating sites.json when sites deleted.
 	 * 
@@ -205,8 +207,8 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 *
 	 */
     public function __construct() {
-
-		foreach(self::configDefaults() as $key => $value) {$this->$key = $value;}// @todo: needed?
+		// @todo: needed?
+		foreach(self::configDefaults() as $key => $value) {$this->$key = $value;}
 		
 		$this->multisitesFullyInstalled = true;
 		
@@ -222,8 +224,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 		/******** - BUILD NOTICES ARRAY - *******/
         $this->notices['messages'] = array();
         $this->notices['errors'] = array();
-        $this->notices['warnings'] = array();
-			
+		$this->notices['warnings'] = array();		
 
 		/******** - TEMP WORKING DIRECTORIES - *******/
 
@@ -241,7 +242,6 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 		$this->cookieLimitName = $this->wire('user')->id . '-processMultiSites-limit-' . $this->wire('input')->urlSegment1;
 		// default number of items to show per respective dashboard if no custom limit set (via post/session cookie).
 		$this->showLimit = 10;
-
 
 	}
 		
@@ -410,8 +410,46 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 * @return string $out Markup of rendered profiles upload form.
 	 *
 	 */
-	 public function executeUpload() {
+	public function executeUpload() {
 		$out = $this->msRender->renderSitesProfilesUpload();
+		return $out;
+	}
+	
+	/**
+	 * Show site install configurations dashboard.
+	 *
+	 * @access public
+	 * @return string $out Markup of install configurations dashboard.
+	 *
+	 */
+	public function executeConfigs() {
+		$out = $this->msRender->renderSitesConfigs();
+		return $out;
+	}
+
+	/**
+	 * Show form for creating/editing a single install configuration.
+	 *
+	 * @access public
+	 * @return string $out Markup of form for adding/editing an install configuration.
+	 *
+	 */
+	public function executeConfig() {
+		$out = $this->msRender->renderSitesConfigsAdd();
+		return $out;
+	}
+
+	/**
+	 * Show site wires dashboard.
+	 * 
+	 * These are the list of ProcessWire versions.
+	 *
+	 * @access public
+	 * @return string $out Markup of list of ProcessWire versions.
+	 *
+	 */
+	public function executeWire() {
+		$out = $this->msRender->renderProcessWireVersions();
 		return $out;
 	}
 
@@ -459,6 +497,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 * Used by this module's installer.
 	 * Called only once during module install.
 	 * 
+	 * @access private
 	 * @param null|integer $mode Whether to verify if install possible (null) or commence install (1).
 	 * @return void
 	 */
@@ -561,9 +600,6 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 		
 
 	}
-
-
-	
 
 
 }

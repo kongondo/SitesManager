@@ -7,7 +7,7 @@
 * Saves superuser account on site install.
 *
 * @author Francis Otieno (Kongondo)
-* @version 0.0.1
+* @version 0.0.2
 *
 * This is a Free Module.
 *

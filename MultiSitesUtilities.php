@@ -7,7 +7,7 @@
 * Provides various utility methods (validation, SQL, conversions, etc) for use throughout the module.
 *
 * @author Francis Otieno (Kongondo)
-* @version 0.0.1
+* @version 0.0.2
 *
 * This is a Free Module.
 * Large chuncks of code lifted from the official ProcessWire installer (install.php).
@@ -54,11 +54,11 @@ class MultiSitesUtilities extends ProcessMultiSites {
     /**
      * Return the absolute path to ProcessWire's root.
      *
-     * @access private
+     * @access public
      * @return string $pwRootPath ProcessWire's root path.
      * 
      */
-    private function getPWRootPath() {
+    public function getPWRootPath() {
         $pwRootPath = $this->wire('config')->paths->root;
         return $pwRootPath;
     }
@@ -119,7 +119,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
     }
 
     /**
-     * Attempt to get
+     * Attempt to get MySQL defaults for various values.
      *
      * @access public
      * @param string $index Index denoting value to return.
@@ -135,6 +135,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
             'dbPass' => ini_get("mysqli.default_pw"),
             'dbEngine' => 'MyISAM'
         );
+        
         return $defaults[$index];      
     }
 
@@ -169,7 +170,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
     }
 
     /**
-	 *	Get limited number of Multi Sites items.
+	 *	Get limited number of Multi Sites items (Pages).
 	 *
 	 * Could be Installed Sites, or Site Profiles, etc.
      * Includes all except items in the trash.
@@ -188,7 +189,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
      * Get site profiles.
      * 
      * These are each saved as pages in admin.
-     * We ignore those withough site profile files.
+     * We ignore those without site profile files.
      *
      * @access private
      * @return array $profilesArray id=>title pairs of profiles.
@@ -199,21 +200,103 @@ class MultiSitesUtilities extends ProcessMultiSites {
         // @todo:? limit=100?
         $profilesSelector = "template=multi-sites-site-profile,parent.name=multi-sites-profiles,limit=100,multi_sites_files!=''";
         $profiles = $this->getItems($profilesSelector);        
-        foreach ($profiles as $profile) $profilesArray[$profile->id] = $profile->title;  
+        foreach ($profiles as $profile) $profilesArray[$profile->id] = $profile->title;
         return $profilesArray;
+    }
+
+    /**
+     * Get saved processwire files.
+     * 
+     * These are stripped down wire folder and required files saved as .zip file.
+     * No site folders in these files!
+     * These are each saved as pages in admin.
+     * We ignore those without processwire zip files.
+     *
+     * @access public
+     * @return array $pwVersionsArray id=>title pairs of processwire versions.
+     * 
+     */
+    public function getProcessWireVersions() {
+        $pwVersionsArray = array();
+        $pwVersionsArray[0] = $this->_('Select ProcessWire version to install');
+        $selector = "template=multi-sites-wire,parent.name=multi-sites-processwire-files,multi_sites_files!=''";   
+        $pwVersions = $this->getItems($selector);
+        foreach ($pwVersions as $pwVersion) $pwVersionsArray[$pwVersion->id] = $pwVersion->title;
+        return $pwVersionsArray;
+    }
+
+    /**
+     * Get saved install configurations.
+     * 
+     * These are pages with JSON install settings.
+     * @note: no passwords are saved in the configurations.
+     * We ignore those without configurations.
+     *
+     * @access public
+     * @return array $installConfigurationsArray id=>title pairs of installed configurations.
+     * 
+     */
+    public function getSavedInstallConfigurations() {
+        $installConfigurationsArray = array();
+        $installConfigurationsArray[0] = $this->_('Select an install configuration');
+        $selector = "template=multi-sites-install-configuration,parent.name=multi-sites-install-configurations,multi_sites_settings!=''";   
+        $configs = $this->getItems($selector);
+        foreach ($configs as $config) $installConfigurationsArray[$config->id] = $config->title;
+        return $installConfigurationsArray;
+    }
+    
+    /**
+     * Get a given site install configuration.
+     *
+     * @access public
+     * @param integer $id PageID of a site install configuration.
+     * @return array $configs Array with a site installat configuration values.
+     * 
+     */
+    public function getSavedInstallConfiguration($id) {
+        $configs = array();
+        $configPage = $this->wire('pages')->get($id);
+        if($configPage && $configPage->id) {
+            $configs = json_decode($configPage->multi_sites_settings, true);
+        }
+        return $configs;
+    }
+
+    /**
+     * Get values that can be saved (configurable) in JSON install configurations.
+     * 
+     * If an install value is not here, it means it needs to be entered afresh every time a site is created.
+     * These include password fields and other dynamic values such as hostnames, domains, title, directory, etc.
+     *
+     * @access public
+     * @return array $configurableValues Array of inputs/values that can be saved in JSON as install configs.
+     * 
+     */
+    public function getInstallJSONConfigurableValues() {
+        $configurableValues = array('ms_installation_profile','ms_admin_theme','ms_colour_theme','ms_timezone','ms_db_user','ms_db_host','ms_db_port','ms_db_engine','ms_db_charset','ms_superuser_name','ms_superuser_email','ms_directories_permission','ms_files_permission');
+        return $configurableValues;
     }
 
     /**
      * Get the profile file for a given profile page
      *
      * @access public
-     * @param integer $profileID pageID of the profile to get.
+     * @param integer $profile pageID|Title of the profile to get.
      * @return string $profileFile Absolute path to the profile file.
      * 
      */
-    public function getProfileFile($profileID) {
+    public function getProfileFile($profile) {
+
         $profileFile = array();
-        $profilePage = $this->wire('pages')->get((int) $profileID);
+
+        if(is_int($profile)) $selector = (int) $profile;
+        else {
+            //$profileName = $this->wire('sanitizer')->pageName($profile);// @todo: not working as expected compared to actionUpload names!
+            $profileName = $this->wire('sanitizer')->text($profile);
+            $selector = "title=$profileName,template=multi-sites-site-profile,parent.name=multi-sites-profiles,include=all";
+        }
+
+        $profilePage = $this->wire('pages')->get($selector);
         if($profilePage && $profilePage->id > 0) {
             $file = $profilePage->multi_sites_files->first();
             if($file) {
@@ -222,6 +305,67 @@ class MultiSitesUtilities extends ProcessMultiSites {
             }
         }
         return $profileFile;
+
+    }
+
+    /**
+     * Return infor about available ProcessWire versions.
+     *
+     * @access public
+     * @param null|integer $versionIndex If specified, return info about given version, otherwise return all.
+     * @return array $info Array with information about ProcessWire versions.
+     * 
+     */
+    public function getProcessWireVersionsInfo($versionIndex=null) {
+
+        $versionsInfo = array(
+            // 2.7 master
+            1 => array(
+                'url'=>'https://github.com/ryancramerdesign/ProcessWire/archive/master.zip',
+                'zip'=>'pw27master.zip',
+                'top_dir'=>'ProcessWire-master',
+                'title'=>'ProcessWire 2.7 Master',
+                'summary'=>$this->_('The previous stable version of ProcessWire (no longer in development).')
+            ),
+            // 2.7 dev
+            2 => array(
+                'url'=>'https://github.com/ryancramerdesign/ProcessWire/archive/dev.zip',
+                'zip'=>'pw27dev.zip',
+                'top_dir'=>'ProcessWire-dev',
+                'title'=>'ProcessWire 2.7 Dev',
+                'summary'=>$this->_('The previous stable version of ProcessWire (the last development edition; no longer in development).')
+            ),
+            // 2.8 master
+            3 => array(
+                'url'=>'https://github.com/processwire/processwire-legacy/archive/master.zip',
+                'zip'=>'pw28master.zip',
+                'top_dir'=>'processwire-legacy-master',
+                'title'=>'ProcessWire 2.8 Master',
+                'summary'=>$this->_('Recommended when you want the same functionality as 3.x but in a non-namespace environment like in 2.7 (stable release).')
+            ),
+            // 3.x master
+            4 => array(
+                'url'=>'https://github.com/processwire/processwire/archive/master.zip',
+                'zip'=>'pw3master.zip',
+                'top_dir'=>'processwire-master',
+                'title'=>'ProcessWire 3.x Master',
+                'summary'=>$this->_('Recommended when creating new sites or downloading ProcessWire for the first time (stable release).')
+            ),
+            // 3.x dev
+            5 => array(
+                'url'=>'https://github.com/processwire/processwire/archive/dev.zip',
+                'zip'=>'pw3dev.zip',
+                'top_dir'=>'processwire-dev',
+                'title'=>'ProcessWire 3.x Dev',
+                'summary'=>$this->_('Recommended when creating new sites or downloading ProcessWire for the first time (newest development edition).')
+            ),
+        );
+
+        // @note: if version index given, return that versions info, else return info for all
+        $info = $versionIndex ? $versionsInfo[$versionIndex] : $versionsInfo;
+
+        return $info;
+
     }
 
     /**
@@ -273,7 +417,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
             // site
             'site' => array(
                 // 0 = section header
-                0 => array($this->_('Site'),
+                'site'=> array($this->_('Site'),
                         ''
                 ),
                 1 => array($this->_('Title'),
@@ -282,38 +426,73 @@ class MultiSitesUtilities extends ProcessMultiSites {
                 2 => array($this->_('Description'),
                 'textarea', 'ms_site_description', $this->getNotes('description')
                 ),
-                3 => array($this->_('Site Directory'),
+
+                3 => array($this->_('Site Type'),
+                'radio', 'ms_create_site_type', $this->getNotes('site_type'), 
+                array(
+                    1=>$this->_('Single Site'),
+                    2=>$this->_('Multi Site')
+                ),
+                'checked' => 2
+                ),
+
+                4 => array($this->_('Install Configuration'),
+                'radio', 'ms_create_method', $this->getNotes('install_method'), 
+                array(
+                    1=>$this->_('Form'),
+                    2=>$this->_('Copy & Paste'),
+                    3=>$this->_('Saved Values')
+                ),
+                'checked' => 1
+                ),
+
+                5 => array($this->_('Saved Configuration'),
+                'select', 'ms_create_json_configs', $this->getNotes('saved_configurations'), $this->getSavedInstallConfigurations()
+                ),
+                
+                6 => array($this->_('Install Directory'),
+                'text', 'ms_site_install_directory', $this->getNotes('install_directory')
+                ),
+                
+                7 => array($this->_('ProcessWire Version'),
+                'select', 'ms_create_pw_version_select', $this->getNotes('processwire_version'), $this->getProcessWireVersions()
+                ),
+
+                8 => array($this->_('Site Directory'),
                 'text', 'ms_site_directory', $this->getNotes('site_directory')
                 ),
-                4 => array($this->_('Hostname and Domain'),
+                9 => array($this->_('Hostname and Domain'),
                 'text', 'ms_site_domain', $this->getNotes('site_domain')
                 ),                
-                5 => array($this->_('Installation Profile'),
+                10 => array($this->_('Installation Profile'),
                     'select', 'ms_installation_profile', $this->getNotes('installation_profile'), $this->getProfiles()
                 ),
-                6 => array($this->_('Admin Login URL') .
+                11 => array($this->_('Admin Login URL') .
                 ' <small>(a-z 0-9)</small>', 'text', 'ms_admin_url', $this->getNotes('admin_login_url')
                 ),
-                7 => array($this->_('Admin Theme'),
+                12 => array($this->_('Admin Theme'),
                 'select', 'ms_admin_theme', $this->getNotes('admin_theme'), $this->adminThemes
                 ),
-                8 => array($this->_('Colour Theme'),
+                13 => array($this->_('Colour Theme'),
                     'select', 'ms_colour_theme', $this->getNotes('colour_theme'), $this->colours
                 ),
-                9 => array($this->_('Default Time Zone'),
+                14 => array($this->_('Default Time Zone'),
                 'text', 'ms_timezone', $this->getNotes('time_zone')
                 ),
                 // @see: original dbConfig() add $_SERVER['SERVER_NAME']?
                 // @note: whitelist
-                10 => array($this->_('HTTP Host Names'),
+                15 => array($this->_('HTTP Host Names'),
                 'textarea', 'ms_http_host_names', $this->getNotes('host_names')
                 ),
 
+                16 => array($this->_('Type or Paste Configurations'),
+                'textarea', 'ms_create_copy_paste', $this->getNotes('type_paste_configurations')
+                ),
             ),
             // database
             'database' => array(
                 // 0 = section header
-                0 => array($this->_('MySQL Database'),
+                'database' => array($this->_('MySQL Database'),
                     ''
                 ),
                 1 => array($this->_('DB Name'),
@@ -336,7 +515,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
             // super user
             'superuser' => array(
                 // 0 = section header
-                0 => array($this->_('Superuser'),
+                'superuser' => array($this->_('Superuser'),
                     ''
                 ),
                 1 => array($this->_('User Name') .
@@ -356,7 +535,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
             // file permissions
             'file_permissions' => array(
                 // 0 = section header
-                0 => array($this->_('File Permissions'),
+                'file_permissions' => array($this->_('File Permissions'),
                     '','', $this->getNotes('file_permissions_header')
                 ),
                 1 => array($this->_('Directories') .
@@ -389,6 +568,12 @@ class MultiSitesUtilities extends ProcessMultiSites {
         $strongPassword = '<a target="_blank" href="http://en.wikipedia.org/wiki/Password_strength">' . $this->_('strong password') . '</a>';
         $supNameNote = sprintf(__('You will use this account to login to your ProcessWire admin. It will have superuser access, so please make sure to create a %s. It must be at least 2 characters long.'), $strongPassword);
 
+        $trailingSlash = '<span class="ms_red">' . $this->_('including a trailing slash') . '</span>';
+
+        ## type/paste in configuration key=value pairs
+
+        $configurationKeyValueInfo = '<a target="_blank" href="https://github.com/kongondo/MultiSites">' . $this->_('documentation') . '</a>';       
+
         ## files stuff
         $securingFiles = '<a target="_blank" href="https://processwire.com/docs/security/file-permissions/">' . $this->_('Read more about securing file permissions') . '</a>';
         
@@ -410,15 +595,29 @@ class MultiSitesUtilities extends ProcessMultiSites {
             $filePermissionsNote .=  ' ' . sprintf(__('We detected that that Apache may be running as your user account. Given that, we populated this permission with %s as a possible starting point.'), $chmodFile);
         }
 
-        ######
+        ######        
 
         $notes = array(
             # site
             'site_title' => $this->_("A title for the installation (in order to save a record of this installation)."),
+            
+            'description' => $this->_('A brief description about this install. This is not required but helpful for site admin.'),
+
+            'site_type' => $this->_('Choose what type of site are you creating. A single site runs in its own Document Root using its own wire folder. A multi-site is installed in a pre-named site directory and shares the wire folder with other sites.'),
+
+            'install_method' => $this->_('Choose how you want to specify the configurations needed to install this site. The saved configurations option can only be used if you have previously uploaded at least one install configuration. In all cases, you will need to enter password details.'),
+
+
+            
+
+
+            'install_directory' => sprintf(__('Enter an absolute path (%1$s) to the install directory for your single site. This directory must already exist. For your information, the ProcessWire root path where this module is running off of is: %2$s.'), $trailingSlash, $this->getPWRootPath()),
+            
+            'processwire_version' => $this->_('Please select a ProcessWire version to install.'),
 
             'site_directory' => $this->_("The name of the site directory to be used with this install. The name you indicate here will be pre-pended with 'site-' when creating the site directory. This is to ensure that ProcessWire's htaccess file can recognize and protect files in that directory. Hence, do not enter the word 'site-' yourself. It is advisable to use a single lowercase word. The final directory will be named similar to 'site-domain' or 'site-something.  This value will be used by index.config.php."),
             
-            'site_domain' => $this->_("Enter the hostname including the domain for this site. For instance, 'mydomain.com', 'www.mydomain.com' or 'dev.mydomain.com'. This value will be used by index.config.php."),
+            'site_domain' => $this->_("Enter the hostname including the domain for this site. For instance, 'mydomain.com', 'www.mydomain.com' or 'dev.mydomain.com'. For multi sites, this value will be used by index.config.php."),
 
             'installation_profile' => $this->_('A site installation profile is a ready-to-use and modify site for ProcessWire. If you are just getting started with ProcessWire, we recommend choosing the Default site profile. If you already know what you are doing, you might prefer the Blank site profile.'),
             
@@ -431,8 +630,10 @@ class MultiSitesUtilities extends ProcessMultiSites {
             'time_zone' => $this->_('Default time zone to be used in your site.'),
             
             'host_names' => $this->_('What host names will this installation run on now and in the future? Please enter one host per line. You may also choose to leave this blank to auto-detect on each request, but we recommend using this whitelist for the best security in production environments. This field is recommended but not required. You can set this later by editing the file /site/config.php (setting \$config->httpHosts).'),
+            
+            'type_paste_configurations' => sprintf(__('Type or Paste in comma-separated key=value pairs of configurations to use for this install. For instance: dbName=my_database_name,colourTheme=classic,superUserName=webmaster, etc. Please have a look at the %s for all required keys.'), $configurationKeyValueInfo),
 
-            'description' => $this->_('A brief description about this install. This is not required but helpful for site admin.'),
+            'saved_configurations' => $this->_('Select a configuration to use for this install.'),
 
             # database
             'db_name' => $this->_('The name of the MySQL 5.x database to connect to on your server. If the database does not exist, we will attempt to create it. Make sure you are installing to a separate database than the one used by your other sites.'),
@@ -492,6 +693,103 @@ class MultiSitesUtilities extends ProcessMultiSites {
         if(strlen($sitesJSON)) $sitesArray = json_decode($sitesJSON, true);
         return $sitesArray;
     }
+
+    /**
+     * Helper method to get information about site install configurations.
+     * 
+     * Used by MultiSitesAction::actionCreateTypePaste() to ensure all required values were submitted.
+     *
+     * @access public
+     * @return array $defaultConfigs Array of required key=>value pairs.
+     * 
+     */
+    public function getDefaultInstallConfigs() {
+        // just to check empties @todo: ADD: dbCharset, dbEngine
+        // @todo: do we need superUserPasswordConfirm for copy paste?
+        $defaultConfigs = array('site'=>'siteDirectoryName','hostDomain'=>'hostAndDomainName','admin'=>'adminLoginName','colour'=>'colourTheme','theme'=>'pwAdminTheme','timezone'=>'timezone','dbName'=>'dbName','dbUser'=>'dbUser','dbPass'=>'dbPass','dbHost'=>'dbHost','dbPort'=>'dbPort','user'=>'superUserName','pass'=>'superUserPassword','passConfirm'=>'superUserPasswordConfirm','email'=>'superUserEmail','chmodDir'=>'directoriesPermissions','chmodFile'=>'filesPermissions');
+        return $defaultConfigs;
+    }
+
+
+    /**
+     * Intersect array by Key.
+     * 
+     * Useful for PHP versions < 5.6. 
+     *
+     * @access public
+     * @param array $allowedKeys Array with keys of arrays items that should be retained.
+     * @return array $intersectedArray Intersected Array.
+     * 
+     */ 
+    public function arrayIntersectKey($originalArray, $allowedKeys) {
+        $intersectedArray = array_intersect_key($originalArray, array_flip($allowedKeys));
+        return $intersectedArray;
+    }
+
+    /* ######################### - SETTERS - ######################### */
+
+    /**
+     * Set a text to contextual links for creating various items in Multi Sites dashboard.
+     *
+     * @access public
+     * @return string $createLink Lik text for contextual creation of item.
+     * 
+     */
+    public function setCreateLink() {
+
+        $urlSegments = $this->getURLSegments();
+        $createLinks = array(
+            'installed' => array(
+                'create',
+                $this->_('Create a new site')
+            ),
+            'profiles' => array(
+                'upload',
+                $this->_('Upload a new profile')
+            ),
+            'configs' => array(
+                'config',
+                $this->_('Create a new install configuration')
+            ),
+        );
+        $urlSeg1 = $urlSegments[0];
+        $createLink = $urlSeg1 ? $createLinks[$urlSeg1] : $createLinks['installed'];
+        
+        return $createLink;
+
+    }
+
+    /**
+     * Set a text to contextual links for going back to list of various items in Multi Sites dashboard.
+     *
+     * @access public
+     * @return string $backLink Lik text for contextual back link to items.
+     * 
+     */
+    public function setBackToItemsListLink() {
+        
+        $urlSegments = $this->getURLSegments();
+        $backLinks = array(
+            'create' => array(
+                'installed',
+                $this->_('Back to list of installed sites')
+            ),
+            'upload' => array(
+                'profiles',
+                $this->_('Back to list of profiles')
+            ),
+            'config' => array(
+                'configs',
+                $this->_('Back to list of install configurations')
+            ),
+        );
+        $urlSeg1 = $urlSegments[0];
+        $backLink = $urlSeg1 ? $backLinks[$urlSeg1] : $backLinks['create'];
+        
+        return $backLink;
+        
+    }
+
 
     /* ######################### - CHECKERS - ######################### */
 
@@ -736,6 +1034,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
     /**
      * Check if the install SQL file is present in a given profile.
      *
+     * @access public
      * @param string $profileTopDirectory Path to the site profile to install.
      * @param array $notices For check feedback.
      * @return array $notices Updated feedback array.
@@ -880,18 +1179,30 @@ class MultiSitesUtilities extends ProcessMultiSites {
     /**
      * Check if a site directory with an identical name already exists at root.
      *
+     * If dealing with a single-site install, we check a path to a directory outside this ProcessWire install.
+     * If dealing with a multi-site, we check a multi-site site directory in PW root.
+     * 
      * @access public
-     * @param string $siteDirectoryName Name of directory to check if exists.
+     * @param string $directory Name of directory to check if exists.
+     * @param integer $siteType Determines check for single vs multi-sites.
      * @param array $notices For check feedback.
      * @return array $notices Updated feedback array.
      * 
      */
-    public function validateDuplicateSiteDirectory($siteDirectoryName, $notices){
-        $notices['no_duplicate_site_directory'] = 1;
-        $siteDirectoryName = 'site-' . $siteDirectoryName;
-        if(is_dir($this->wire('config')->paths->root . $siteDirectoryName . '/')) {
-            $notices['no_duplicate_site_directory'] = 0;
+    public function validateDuplicateSiteDirectory($directory, $siteType, $notices){
+        // @todo: for single sites ensure INSTALL DIRECTORY has trailing slash?
+        $notices['directory_error'] = 0;
+        // multi-site setup: @note: if multi-site setup we need the directory NOT TO EXIST
+        if(2 == $siteType) {
+            $directory = $this->wire('config')->paths->root . 'site-' . $directory . '/';
+            if(is_dir($directory)) $notices['directory_error'] = 1;
         }
+        // single site setup: @note: if single-site setup we need the directory TO EXIST
+        else {
+            if(!is_dir($directory)) $notices['directory_error'] = 1;
+
+        }
+        
         return $notices;
     }
 
@@ -1324,9 +1635,11 @@ class MultiSitesUtilities extends ProcessMultiSites {
      * @return array $notices Updated feedback array.
      * 
      */
-    public function adminAccountSave(Array $values, $notices) {
+    public function adminAccountSave(Array $values, $siteType, $notices) {
 
-        // @todo...add an install modules manifest?        
+        $this->siteType = $siteType;
+
+        // @todo: add an install modules manifest?        
         $notices = $this->saveAdminAccountConfig($values, $notices);
 
         if(1 == $notices['save_admin_config']) {
@@ -1339,14 +1652,24 @@ class MultiSitesUtilities extends ProcessMultiSites {
             // @note: on fresh install (before change), PW admin is 'processwire'!
             $postURL = "$hostAndDomainName/processwire/";
     
-            // @note: we only post key=>value token to identify ourselves. Rest of credentials will be 'file_put_contents'
+            // @note: we only post key=>value token to identify ourselves. Rest of credentials will be done via 'file_put_contents'
             $http = new WireHttp();
             $result = $http->post($postURL, $data);
 
             if($result) $notice['messages'][] = $this->_('Admin account successfully saved.');    
             else $notices['errors'][] = $this->_('Error saving admin account.');
+           
+            
+            ##########
 
-            $newSitePath = $this->getSitePath($values['siteDirectoryName']); // @note: includes getPWRootPath()         
+            # determine and set path to /site/templates/ @note: $this->siteType here set above
+            // single-site install
+            if(1 == $this->siteType) $newSitePath = $values['installDirectoryPath'] . 'site/';
+            // multi-site install
+            else $newSitePath = $this->getSitePath($values['siteDirectoryName']); // @note: includes getPWRootPath()
+
+            #########
+            
             $templatesPath =  $newSitePath . '/templates/';
             $assetsPath = $newSitePath . '/assets/';
             $tempAdminPHPFile = $templatesPath . 'admin.php';
@@ -1386,8 +1709,13 @@ class MultiSitesUtilities extends ProcessMultiSites {
 
         $sourcePath = dirname(__FILE__) . '/files/';
         $adminConfigFile = $sourcePath . 'admin.config.txt';
-        $newSitePath = $this->getSitePath($values['siteDirectoryName']); // @note: includes getPWRootPath()         
-        $templatesPath =  $newSitePath . '/templates/';
+        
+        # determine and set path to /site/templates/ @note: $this->siteType here set in $this->adminAccountSave()
+        // single-site install
+        if(1 == $this->siteType) $newSitePath = $values['installDirectoryPath'] . 'site/';
+        // multi-site install
+        else $newSitePath = $this->getSitePath($values['siteDirectoryName']); // @note: includes getPWRootPath()
+        $templatesPath =  $newSitePath . '/templates/';       
 
         if(is_file($adminConfigFile)) {
             copy($adminConfigFile, $sourcePath . 'admin.config.php');
@@ -1451,6 +1779,79 @@ class MultiSitesUtilities extends ProcessMultiSites {
         return $notices;
 
     }
+
+    /**
+     * Download a given ProcessWire version.
+     * 
+     * Method also processes the file to remove unrequired files.
+     * What remains is zipped to be stored in a page record in admin.
+     *
+     * @access public
+     * @param integer $versionIndex Version index to get the given PW Version from pre-set values.
+     * @param array $notices For user feedback.
+     * @return array $notices Updated feedback array.
+     * 
+     */
+    public function downloadProcessWireVersion($versionIndex, $notices) {
+        
+        $notices['download'] = 1;
+        $notices['wire_zip'] = 1;
+
+        $version = $this->getProcessWireVersionsInfo($versionIndex);
+        $fromURL = $version['url'];// the URL to grab the processwire version from
+        $zipFileName = $version['zip'];// the name to give to the downloaded proceswire zip file
+        $topPWDirectoryName = $version['top_dir'];// the name of the top directory in the uncompressed download
+        $toFile = $this->privateTempUploadsDir . $zipFileName;
+
+        // download processwire
+		$http = new WireHttp();		
+        $pwZipFile = $http->download($fromURL, $toFile);
+        
+        if(!$pwZipFile) {
+            $notices['errors'][] = $this->_('We could not download the ProcessWire file');
+            $notices['download'] = 0;
+            return $notices;
+        }
+
+		// unzip and process the file @note: PW will throw exception on any error here
+		$notices = $this->unzipFile($pwZipFile, $this->privateTempUploadsDir, $notices);
+
+		$wireDir = $this->privateTempUploadsDir . $topPWDirectoryName;
+
+		$dir = new DirectoryIterator($wireDir);
+
+		foreach($dir as $item) {
+            if( $item->isDir() && $item->isDot()) continue;// skip system directories
+            $name = $item->getFilename();
+            $pathname = $item->getPathname();
+            // we only want wire directory; we delete 'site-xxx' etc
+			if( $item->isDir() && !in_array($name, array('wire')) ) {
+				$notices = $this->removeDirectory($pathname, $notices);
+            }
+            // we do not want certain files; we delete them
+			elseif(!$item->isDir() && in_array($name, array('.gitignore', '.gitattributes', 'install.php'))) {
+				unlink($pathname);
+			}
+            
+		}
+		
+		// zip (compress) the leftovers. we'll upload to this version's page
+		$filesArray = wireZipFile($toFile, $wireDir, array('overwrite'=>true));
+        // remove the directory if zipped successfully
+        // @todo? what if could not zip?
+		if(count($filesArray)) $notices = $this->removeDirectory($wireDir, $notices);        
+        else {
+            $notices['errors'][] = $this->_('Could not compress the Wire file');
+            $notices['wire_zip'] = 0;
+        }
+
+        // @note: version's page to be created/updated in MultiSitesActions::actionVersions()
+        
+        return $notices;
+
+    }
+
+
     
     /* ######################### - FILE FUNCTIONS - ######################### */
 
@@ -1597,6 +1998,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
      * Their page records have also been deleted.
      * We remove them from sites.json since they are now inexistent.
      *
+     * @access public
      * @param array array $removedSites Entries (directories) of sites to remove.
      * @param array $notices For user feedback.
      * @return array $notices Updated feedback array.
@@ -1619,24 +2021,28 @@ class MultiSitesUtilities extends ProcessMultiSites {
     }
 
     /**
-     * Unzip a profile file.
+     * Unzip a given file.
      *
-     * @param string $profileFile Absolute path to profile file to uncompress.
+     * Could be a profile file or a downloaded processwire zip file for single sites.
+     * 
+     * @access public
+     * @param string $file Absolute path to file to uncompress.
+     * @param string $dst Absolute path to destination to uncompress to.
      * @param array $notices For user feedback.
      * @return array $notices Updated feedback array.
      * 
      */
-    public function unzipProfileFile($profileFile, $notices) {
+    public function unzipFile($file, $dst, $notices) {
         
         $unzip = array();
 
         // if profile file not found
-        if(!is_file($profileFile)) $notices['errors'][] = $this->_('No profile file found at the path.');
+        if(!is_file($file)) $notices['errors'][] = $this->_('No file found at the path.');
         else {
             // use in-built pw method. returns an array with unzipped files and folders
-            $unzip = wireUnzipFile($profileFile, $this->privateTempSitesDir);
-            if(count($unzip)) $notices['messages'][] = $this->_('Successfully unzipped profile file.');
-            else $notices['errors'][] = $this->_('The profile directories are empty!');
+            $unzip = wireUnzipFile($file, $dst);
+            if(count($unzip)) $notices['messages'][] = $this->_('Successfully unzipped file.');
+            else $notices['errors'][] = $this->_('The directories are empty!');
         }
 
         return $notices;
@@ -1705,38 +2111,122 @@ class MultiSitesUtilities extends ProcessMultiSites {
         }
         return $notices;
     }
-
+   
     /**
-     * Rename and move the newly installed site to ProcessWire's root.
+     * Rename and move the newly installed site to root.
      * 
-     * The site will then be accessible as a normal multi-site.
-     *
+     * For single-sites: The site will then be accessible as a normal stand-alone once we also (elsewhere) move /wire/.
+     * For multi-sites: The site will then be accessible as a normal multi-site under this running ProcessWire.
+     * 
      * @access public
      * @param string $profileTopDirectory Absolute path to the newly installed site that needs moving.
-     * @param string $siteDirectoryName Name to use when renaming the newly installed site's directory.
+     * @param string $directory Name (multi-site)|Path (single site) for final install.
      * @param array $notices For user feedback.
      * @return array $notices Updated feedback array.
      * 
      */
-    public function renameAndMoveSite($profileTopDirectory, $siteDirectoryName, $notices) {
-        
+    public function renameAndMoveSite($profileTopDirectory, $directory, $siteType, $notices) {
+
+        /* @note:
+            # @single-site
+            - 'site-profile-name' folder renamed to 'site'
+            - folder is moved to specified webroot path (not this ProcessWire root!)
+            - $directory must be a pre-existing path; we don't create one!
+
+            # @multi-site
+            - 'site-profile-name' folder renamed to 'site-name-given-to-multi-site'
+            - folder is moved to this ProcessWire root!
+            - $directory is a string. An identical directory MUST NOT pre-exist; we'll create one!
+        */
+
         $profileTopDirectory = $profileTopDirectory . '/';
         $path = $this->getInstallProfilePath($profileTopDirectory);
+
+        // single site setup
+        if(1 == $siteType) {
+            $newSitePath = $directory . 'site/';
+        }
+        // multi site setup
+        else {
+            // @note: we assume root (of PW) is writable since module running on existing install!
+            // will be something like ...path/site-directory/
+            $newSitePath = $this->getSitePath($directory);// @note: includes getPWRootPath()
+        }
         
-        // @note: we assume root (of PW) is writable since module running on existing install!
-        $newSitePath = $this->getSitePath($siteDirectoryName);// @note: includes getPWRootPath()
-        
+        // rename and move        
         if(is_dir($path)) {
             $result = $this->rename($path, $newSitePath); 
             if($result) $notices['messages'][] = $this->_('Successfully renamed and moved site directory to root.');
             else {
-                $notices['errors'][] = $this->_('Failed to rename and/or move site directory to root. Please check that your ProcessWire root folder is writable.');
+                $notices['errors'][] = $this->_('Failed to rename and/or move site directory to root. Please check that your specified root folder is writable.');
             }
         }
         // for whatever reason, site directory has gone away!
         else $notices['errors'][] = sprintf(__('Site directory not found at %s.'), $path);
 
         return $notices;
+
+    }
+
+    /**
+     * For single sites, move the 'wire' folder and other required files to the site's document root.
+     * 
+     * Files include: htaccess.txt(we rename to .htaccess), copyright, readme, license, index.php, etc.
+     *
+     * @access public
+     * @param string $installPath Absolute path to move the wire folder to.
+     * @param integer $pwVersionPageID PageID of page with ProcessWire version to prepare and move.
+     * @param array $notices For user feedback.
+     * @return array $notices Updated feedback array.
+     * 
+     */
+    public function moveWire($installPath, $pwVersionPageID, $notices) {
+
+        $pwVersionPageID = (int) $pwVersionPageID;
+        $pwPage = $this->wire('pages')->get($pwVersionPageID);
+
+        if($pwPage && $pwPage->id > 0) {
+
+            // get the file
+            $pwZipFile  = $pwPage->multi_sites_files->first();
+            $pwZipFilePath = $pwZipFile->filename;
+            // unzip and process the file @note: PW will throw exception on any error here
+            $notices = $this->unzipFile($pwZipFilePath, $this->privateTempUploadsDir, $notices);
+            
+            // get this versions top directory e.g. processwire-master
+            $versionsInfo = $this->getProcessWireVersionsInfo();
+            $title = $pwPage->title;
+            $version = array_filter($versionsInfo, function($v) use($title) { 
+                return ($v['title'] == $title);
+            });
+
+            foreach ($version as $key => $info) {
+                $topPWDirectoryName = $version[$key]['top_dir'];
+                break;
+            }
+            
+            // move wire folder and files to specified root path
+            $wireDir = $this->privateTempUploadsDir . $topPWDirectoryName;
+            
+            $dir = new DirectoryIterator($wireDir);            
+            
+            foreach($dir as $item) {
+                if($item->isDot()) continue; 
+                $pathname = $item->getPathname();
+                $name = $item->getFilename();
+                if('htaccess.txt' == $name) $name = '.htaccess';
+                $result = $this->rename($pathname, $installPath . $name);
+                if($result) $notices['messages'][] = sprintf(__('Moved %s to specified root.'), $name);
+                else $notices['errors'][] = sprintf(__('Failed to move %s to specified root.'), $name);
+            }            
+            
+            // remove the temp $topPWDirectoryName
+            $this->removeDirectory($wireDir, $notices);
+
+        }
+
+        return $notices;
+
 
     }
     

@@ -9,41 +9,39 @@
 */
 
 /** divs **/
-div.ms_hide {display: none}
 div#ms_menu {margin-bottom: 2em;}
+div.ms_form_wrapper{border: 1px solid #d9e1ea; padding: 1em; height:auto;}
 
-div#ms_create_wrapper,
-div#ms_cleanup_wrapper,
-div#ms_profile_upload_wrapper,
-div#ms_installed_sites_wrapper,
-div#ms_profiles_wrapper,
-div#ms_missing_components_wrapper {
-    border: 1px solid #d9e1ea;
-	padding: 1em;
-	height:auto;
-}
-
-div#ms_menu:after, div#ms_settings:after {
+div#ms_menu:after, div#ms_create_form_inputs_wrapper:after, div#ms_create_single_site_wrapper:after, div#content form:after {
     content:'';
     display:block;
     clear: both;
 }
-
-div.ms_setting {float: left; padding: 0 1em;}
+div.ms_setting_header {border-bottom: 1px dotted #d9e1ea; }
+div.ms_setting {float: left; padding: 0 1em;  min-height: 65px;}
 div.ms_setting:first-child {width: 35%;}
 div.ms_setting:last-child {width: 65%; margin-top: 2.5em;}
 div.ms_section, div.ms_setting_header {width: 100%; clear:left;}
 div.ms_section, div.ms_cleanup_header {background-color: #E8E8E8; padding: 0.25em 1em;}
-div#ms_cleanup_warning, div#ms_profile_upload_notice {background-color: #000; color: #FFF; padding: 1px 7px; margin-bottom: 2em; border-radius: 3px;}
+div#ms_cleanup_warning, div#ms_notice {background-color: #000; color: #FFF; padding: 1px 7px; margin-bottom: 2em; border-radius: 3px;}
+div#ms_create_form_inputs_wrapper div#ms_notice {margin-bottom: 1em;}
+div#ms_spinner_wrapper {width: 100%; height: 20px; text-align: center; margin: 0 0 1em 0; position: absolute; top:0; color: red;}
 
-div.ms_installed_sites, div.ms_profiles {
+div.ms_installed_sites, div.ms_profiles, div.ms_configs, div.ms_processwire_versions {
 	/* overflow: hidden; */
     margin-top: 1em;
     padding: 0 0 1em 0;
     border-bottom: 1px dotted rgba(0,0,0,0.20);
 }
 
-div.ms_profiles, div.ms_installed_sites {position: relative}
+div.ms_form_wrapper,
+div.ms_profiles,
+div.ms_installed_sites,
+div.ms_configs,
+div.ms_processwire_versions,
+div#ms_config_add_form_inputs_wrapper {
+	position: relative
+}
 
 div#ms_top_strip_actions {
     margin-bottom: 1em;
@@ -51,60 +49,68 @@ div#ms_top_strip_actions {
     border-bottom: 1px dotted rgba(0,0,0,0.20);
 }
 
-div#ms_top_action_selects, div#ms_top_pagination {
-    width: 50%;
-    float: left;
-}
+div#ms_headline_items_count, div#ms_headline_create_link, div#ms_top_action_selects, div#ms_top_pagination {width: 50%; float: left;}
+div#ms_headline_strip, div#ms_headline_back_link {height: 30px; margin-bottom: 2em;}
+div#ms_headline_strip {font-size: 1.125em;}
+
 
 /* div.ms_popup {background-color: #FFF; min-height: 200px; margin: 0 auto; width: 70%; } */
 div#ms_edit_profile {background-color: #FFF; margin: 0 5%; position: relative}
 div#ms_popups_close {position: absolute; top: 0; left: 0;  color: #FFF; padding: 5px 10px; margin: 0 5%; width: 90%}
-div#ms_validation, div#ms_installed_sites_action_confirm, div#ms_no_item_selected {background-color: #FFF; min-height: 200px; margin: 34px 5%;  padding: 20px;}
-
+div#ms_validation, div#ms_installed_sites_action_confirm, div#ms_no_item_selected, div#ms_no_action_selected {background-color: #FFF; min-height: 200px; margin: 34px 5%;  padding: 20px;}
+div#ms_bottom_pagination {margin: 3em 0 2em 0;}
 
 /** headers **/
-div.ms_installed_sites h2, div.ms_profiles h2 {font-weight: bold; display: inline-block; margin-left: 1.5em;}
-h2#ms_validation_header, h2#ms_installed_sites_action_confirm_header, h2#ms_no_item_selected_header {font-weight: bold; font-size: 1.20em;}
+div.ms_installed_sites h2,
+div.ms_profiles h2,
+div.ms_configs h2,
+div#ms_processwire_versions_wrapper h2 {
+	font-weight: bold; display: inline-block; margin-left: 1.5em;
+}
+h2#ms_validation_header,
+h2#ms_installed_sites_action_confirm_header,
+h2#ms_no_item_selected_header,
+h2#ms_no_action_selected_header {
+	font-weight: bold; font-size: 1.20em;
+}
 div.ms_section h2#ms_installed_sites_action_confirm_header {margin: 0.25em 0;}
+div#ms_config_add_form_inputs_wrapperdiv.ms_section h2 {margin: 0 0 0.5em 0;}
+div#content h2:not(.ms_edit) {margin: 0;}
 
 /** label **/
-div#ms_settings label, div#ms_profile_upload label, div#ms_profile_upload span.ms_radio_header {display: block; margin: 0.75em 0; font-weight: bold;}
-div#ms_profile_upload label.ms_radio {display: inline-block; margin-left: 0.5em; margin-right: 1em;}
+div#ms_create_form_inputs_wrapper label,
+div#ms_profile_upload label,
+div#ms_config_add_form_inputs_wrapper label,
+div#ms_create_copy_paste_wrapper label,
+div#content span.ms_radio_header {
+	display: block; margin: 0.75em 0; font-weight: bold;
+}
+div#content label.ms_radio {display: inline-block; margin-left: 0.5em; margin-right: 1em; font-weight: normal}
 div.ms_cleanup_items ol li label {margin-right: 0.5em;}
 
+
 /** inputs **/
-div#ms_settings .ms_required, div#ms_profile_upload .ms_required {background-color: #fed6da;}
-div#ms_settings input[type=text],
-div#ms_settings input[type=email],
-div#ms_settings input[type=password],
-div#ms_settings select,
-div#ms_settings textarea,
+div#ms_create_form_inputs_wrapper .ms_required, div#ms_profile_upload .ms_required, div#ms_config_add_form_inputs_wrapper .ms_required {background-color: #fed6da;}
+div.ms_setting input,
+div.ms_setting select,
+div.ms_setting textarea,
 div#ms_profile_upload input[type=text],
 div#ms_profile_upload textarea {
 	width: 95%; margin-bottom: 1em;
 }
-
-div#ms_profile_upload input[type=text],
-div#ms_profile_upload textarea {
-	width: 100%;
-}
-
-div#ms_settings input, div#ms_profile_upload input {padding: 0.3em 0.5em;}
+div#ms_profile_upload input[type=text],div#ms_profile_upload textarea {width: 100%;}
+div#content input {padding: 0.3em 0.5em;}
 div#ms_profile_upload  input[type=file] {padding-left: 0}
-
-div#ms_top_action_selects input#ms_toggle_all,
-div.ms_installed_sites input[type=checkbox],
-div.ms_profiles input[type=checkbox],
-div#ms_top_action_selects select#ms_items_action_select,
-div#ms_top_action_selects select#limit {
-	margin-right: 1em;
-}
-
+div#content input, div#content select {margin-right: 1em;}
 div.ms_cleanup_items ol li span input[type=checkbox],
 div.ms_installed_sites input[type=checkbox],
+div.ms_form_wrapper input[type=checkbox],
 div.ms_profiles input[type=checkbox],
+div.ms_configs input[type=checkbox],
+div.ms_processwire_versions input[type=checkbox],
 input#ms_toggle_all,
-div#ms_profile_upload input[type=radio] {
+div#ms_profile_upload input[type=radio],
+div.ms_form_wrapper input[type=radio] {
     width: 20px;
     height: 20px;
     vertical-align: bottom;
@@ -115,46 +121,42 @@ div#ms_profile_upload input[type=radio] {
 	top: -3px;
 }
 
-div#ms_profile_upload input[type=radio],
+div#content input[type=radio], div#content input[type=checkbox]{vertical-align:middle;}
+div#content input[type=radio] {top: -1px;}
 div.ms_installed_sites input[type=checkbox],
-div.ms_profiles input[type=checkbox] {
-	vertical-align:middle;
+div.ms_profiles input[type=checkbox],
+div.ms_configs input[type=checkbox],
+div.ms_processwire_versions input[type=checkbox]{
+	top: -2px;
 }
-div#ms_profile_upload input[type=radio] {top: -1px;}
-div.ms_installed_sites input[type=checkbox], div.ms_profiles input[type=checkbox]{top: -2px;}
 
 /** button **/
-button#ms_create_btn,
-button#ms_installed_btn,
-button#ms_profiles_btn,
-button#ms_upload_btn,
-button#ms_cleanup_btn,
-button#ms_edit_profile_btn,
-button#ms_installed_sites_action_confirm_btn,
-button#ms_installed_sites_action_cancel_btn,
-button#ms_upload_and_view_btn,
-button#ms_create_and_view_btn {
-	margin-top: 2em;
-}
+div#content button {margin: 0 0 1em 0;}
 
 /** paragraph **/
-div#ms_create_wrapper p {margin: 0;}
+div.ms_section p.ms_section_notes, div#ms_notice p, p.ms_setting_notes {margin: 0;}
+div#ms_notice p {padding: 0.5em;}
 div#ms_installed_sites_action_confirm p.ms_confirm_list {margin-top: 1em; font-weight: bold; }
 div.mfp-content p.ms_error {margin-top: 1em;}
+p#ms_items_count {margin-top: 0 }
 
 /** span **/
 div.ms_cleanup_items ol li span {float: right;}
-div.ms_installed_sites span, div.ms_profiles span {display: block; font-style: italic; font-size: 0.95em;}
+div.ms_installed_sites span,
+div.ms_profiles span,
+div.ms_configs span,
+div.ms_processwire_versions span {
+	display: block; font-style: italic; font-size: 0.95em;
+}
 div#ms_popups_close span.mfp-close {font-weight: bold; cursor: pointer; color: #FFF; margin-top: -5px;}
-
+span.ms_spinner {display: inline-block; text-align: center; z-index: 1000;}
+span.ms_spinner  i.ms_spinner {font-size: 60px !important;}
+span#ms_create_link {float:right}
+span.ms_red {color: red;}
 
 /** small **/
-div#ms_create_wrapper small {font-weight: normal;}
-div.ms_profiles small.ms_locked, div.ms_installed_sites small.ms_locked {
-	/* position: absolute;
-	top: 0;
-	right: 0; */
-	color: red;
+div.ms_form_wrapper small {font-weight: normal;}
+div#content small.ms_locked {
 	color:#FFF;
 	font-size: 80%;
 	margin-left: 0.75em;
@@ -162,8 +164,6 @@ div.ms_profiles small.ms_locked, div.ms_installed_sites small.ms_locked {
 	border-radius: 3px;
 	padding: 0 0.25em;
 }
-
-
 
 /** list **/
 ul.ms_menu {
@@ -189,8 +189,8 @@ ol#ms_installed_sites_delete_databases_confirm_list li{
 	display: list-item;	list-style-position: inside; list-style-type: decimal;
 }
 
-div#ms_top_pagination ul.MarkupPagerNav, div#ms_bottom_pagination ul.MarkupPagerNav {float: right; margin: 0}
-div#ms_bottom_pagination ul.MarkupPagerNav {margin-top: 3em;}
+div#content ul.MarkupPagerNav {float: right; margin: 0}
+/* div#ms_bottom_pagination ul.MarkupPagerNav {margin-top: 3em;} */
 
 /** anchor **/
 a.ms_menu_item {
@@ -205,3 +205,6 @@ a.ms_menu_item {
 }
 
 a.ms_on {color: #f64704;}
+
+/** other **/
+div#content .ms_hide {display: none}

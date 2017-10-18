@@ -7,7 +7,7 @@
 * Utility to remove Multi sites components pre-module uninstall.
 *
 * @author Francis Otieno (Kongondo)
-* @version 0.0.1
+* @version 0.0.2
 *
 * This is a Free Module.
 *
@@ -49,7 +49,7 @@ class MultiSitesCleanup extends ProcessMultiSites {
 	private function cleanUpPages() {
 		$pages = $this->wire('pages');
 		// grab the two parent pages
-		$pagesTemplates = array('multi-sites-installed-sites', 'multi-sites-site-profiles');
+		$pagesTemplates = array('multi-sites-installed-sites', 'multi-sites-site-profiles', 'multi-sites-wires', 'multi-sites-install-configurations');
 		foreach ($pagesTemplates as $templateName) {
 			$p = $pages->get('parent.name=multi-sites,template='.$templateName);
 			// recursively delete the pages - i.e., including their children
@@ -57,7 +57,7 @@ class MultiSitesCleanup extends ProcessMultiSites {
 		}
 
 		// also delete any pages that may have been left in the trash
-		foreach ($pages->find('template=multi-sites-installed-site|multi-sites-site-profile, status>=' . Page::statusTrash) as $p) $p->delete();
+		foreach ($pages->find('template=multi-sites-installed-site|multi-sites-site-profile|multi-sites-wire|multi-sites-install-configuration, status>=' . Page::statusTrash) as $p) $p->delete();
 		
 		return $this->cleanUpTemplates();
 
@@ -73,7 +73,7 @@ class MultiSitesCleanup extends ProcessMultiSites {
 	private function cleanUpTemplates() {
 
 		$templates = $this->wire('templates');
-		$templatesArray = array('multi-sites-installed-sites','multi-sites-installed-site','multi-sites-site-profiles','multi-sites-site-profile');
+		$templatesArray = array('multi-sites-installed-sites','multi-sites-installed-site','multi-sites-site-profiles','multi-sites-site-profile','multi-sites-wires','multi-sites-wire','multi-sites-install-configurations','multi-sites-install-configuration');
 
 		// delete each found template one by one
 		foreach ($templatesArray as $tpl) {

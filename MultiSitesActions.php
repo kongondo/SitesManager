@@ -7,7 +7,7 @@
 * Executes various runtime CRUD tasks for the module.
 *
 * @author Francis Otieno (Kongondo)
-* @version 0.0.1
+* @version 0.0.2
 *
 * This is a Free Module.
 * Some chuncks of code lifted from the official ProcessWire installer (install.php).
@@ -34,18 +34,21 @@ class MultiSitesActions extends ProcessMultiSites {
 	 *
 	 *	@access public
      *	@param String $actionType Specifies the specific action to take.
-     *	@param Object $post Form with items to action.
+     *	@param object $post Form with items to action.
 	 *
 	 */
     public function actionItems($actionType, $post) {
 
-        $this->wire('session')->CSRF->validate();// validate against CSRF     
-
-        if($actionType == 'installed')	    $this->actionInstalled($post);
-        elseif($actionType == 'create')	$this->actionCreate($post);
-        elseif($actionType == 'profiles')	$this->actionProfiles($post);
-        elseif($actionType == 'upload' || $actionType == 'edit_profile') $this->actionUpload($post);
-        elseif($actionType == 'cleanup')	$this->actionCleanup($post);
+        $this->wire('session')->CSRF->validate();// validate against CSRF        
+ 
+        if($actionType == 'installed')	    $this->actionInstalled($post);// bulk edit installed sites
+        elseif($actionType == 'create')	$this->actionCreate($post);// single create sites form
+        elseif($actionType == 'profiles')	$this->actionProfiles($post);// bulk edit profiles
+        elseif($actionType == 'upload' || $actionType == 'edit_profile') $this->actionUpload($post);// single upload profile/edit uploaded profile
+        elseif($actionType == 'configs')	$this->actionConfigs($post);// bulk edit installation configurations
+        elseif($actionType == 'config' || $actionType == 'edit_config') $this->actionConfig($post);// single config/edit config
+        elseif($actionType == 'versions')	$this->actionVersions($post);// bulk edit pw versions 
+        elseif($actionType == 'cleanup')	$this->actionCleanup($post);// single cleanup form
          
         // @note: $this->notices updated in above action methods
         $notices = $this->notices;
@@ -53,14 +56,17 @@ class MultiSitesActions extends ProcessMultiSites {
         // @todo?: ideally, if error, we need to return the form values! however, we have done client-side validation, so...
         // check for success/error messages RE actions
         if(count($notices['errors'])) $this->msUtilities->runNotices($notices['errors'], 2);
-        elseif(count($notices['messages'])) {
-            $this->msUtilities->runNotices($notices['messages'], 1);
-            if(count($notices['warnings'])) $this->msUtilities->runNotices($notices['warnings'], 3);
-        }
-
+        elseif(count($notices['messages'])) $this->msUtilities->runNotices($notices['messages'], 1);
+        if(count($notices['warnings'])) $this->msUtilities->runNotices($notices['warnings'], 3);
+        // create/install site and view sites list
         if($post->ms_create_and_view_btn && !count($notices['errors'])) $url = $this->wire('page')->url;
-        elseif($post->ms_upload_and_view_btn && !count($notices['errors'])) $url = $this->wire('page')->url . 'profiles/';        
+        // upload profile and view profiles list
+        elseif($post->ms_upload_and_view_btn && !count($notices['errors'])) $url = $this->wire('page')->url . 'profiles/';
+        // create/add install configuration and view configurations list
+        elseif($post->ms_config_add_and_view_btn && !count($notices['errors'])) $url = $this->wire('page')->url . 'configs/';
+        // redirect in a modal
         elseif(isset($notices['redirect'])) $url = $notices['redirect'] . '?modal=1';
+        // all else
         else $url = '.';
         $this->session->redirect($url);
          
@@ -72,14 +78,25 @@ class MultiSitesActions extends ProcessMultiSites {
 	 * The method calls other methods for specific actions.
 	 *
 	 *	@access private
-	 *	@param Object $post Form with items to process.
+	 *	@param object $post Form with items to process.
 	 *
 	 */
     private function actionInstalled($post) {
         
         $action = $this->wire('sanitizer')->fieldName($post->ms_items_action_select);
+        
         // @note: array
         $items = $post->ms_items_action_selected;
+
+        if('select' == $action) {
+            $this->notices['errors'][] = $this->_('Multi Sites: You need to select an action to apply.');
+            return;
+        }
+
+        if(!count($items)) {// @note: we also do some client-side validations
+            $this->notices['errors'][] = $this->_('Multi Sites: You need to select installed sites to action.');
+            return;
+        }
         
         // @note: these actions also delete the install page record!
         // @note: we skip locked records for all actions
@@ -105,10 +122,21 @@ class MultiSitesActions extends ProcessMultiSites {
 	 * Sites are installed as per the ProcessWire multisites strategy.
 	 *
 	 *	@access private
-	 *	@param Object $post Form with settings forr site creation.
+	 *	@param object $post Form with settings for site creation.
 	 *
 	 */
 	private function actionCreate($post) {
+
+        // process and set properties
+        $this->siteType = (int) $post->ms_create_site_type;
+        $this->createMethod = (int) $post->ms_create_method;
+
+        $single = 1 === $this->siteType ? true : false;
+
+        // process and set properties
+        if(1 == $this->createMethod) $this->actionCreateForm($post);
+        elseif(2 == $this->createMethod) $this->actionCreateTypePaste($post);
+        elseif(3==$this->createMethod) $this->actionCreateInstallConfig($post);
 
         // @note: we also do some client-side validations
 
@@ -117,9 +145,11 @@ class MultiSitesActions extends ProcessMultiSites {
         $checkEmpty = array();
 
         # 1. SITE (10)
+        
         $title = $checkEmpty['title'] = $sanitizer->text($post->ms_site_title);
 
         // check if an installed site with that title already exists
+        //  @todo: amend to make generic e.g. for use here and in action config?
         $this->notices = $this->msUtilities->validatePageTitle($title, $this->notices);
         if(0 == $this->notices['no_duplicate_site_title']) {
             $this->notices['errors'][] = $this->_('Multi Sites: An installed site with that title already exists. Amend the title and try again.');
@@ -127,45 +157,69 @@ class MultiSitesActions extends ProcessMultiSites {
         }
 
         $description = $sanitizer->purify($post->ms_site_description);// @note: not required
-        // @todo? sanitize OK?
-        $siteDirectoryName = $checkEmpty['directory'] = $sanitizer->pageName($post->ms_site_directory);
-        // @todo? sanitize URL?
-        $hostAndDomainName = $checkEmpty['hostAndDomainName'] = $sanitizer->text($post->ms_site_domain);
-        $profileID = $checkEmpty['profile'] = (int) $post->ms_installation_profile;
-        $adminLoginName = $checkEmpty['adminURL'] = $sanitizer->pageName($post->ms_admin_url);// @note:doing other validations later
-        // colour theme
-        $colourThemeID = $checkEmpty['colourTheme'] = (int) $post->ms_colour_theme;
-        // get colour theme by name
-        $colourTheme = $colourThemeID ? $this->colours[$colourThemeID] : $this->colours[1];
-        // admin theme
-        $adminThemeID = $checkEmpty['adminTheme'] = (int) $post->ms_admin_theme;
-        // get admin theme by name
-        $adminTheme = $adminThemeID ? $this->adminThemes[$adminThemeID] : $this->adminThemes[1];
-        $timezoneID = $checkEmpty['timezoneID'] = (int) $post->ms_timezone_id;
+        
+        // multi-site: install directory (string)
+        $siteDirectoryName = $this->siteDirectoryName;
+        // single-site: install directory (path)
+        $installDirectoryPath = $this->installDirectoryPath;
+        // single site: processwire version
+        $processWireVersion = $this->processWireVersion;
+
+        if(!$single) {
+            $checkEmpty['directory'] = $this->siteDirectoryName;
+        }
+        else {
+            $checkEmpty['directory'] = $installDirectoryPath;
+            $checkEmpty['directory'] = $processWireVersion;
+        }        
+
+        $hostAndDomainName = $checkEmpty['hostAndDomainName'] = $this->hostAndDomainName;        
+        $adminLoginName = $checkEmpty['adminURL'] = $this->adminLoginName;// @note:doing other validations later
+
+        // creating via form or saved (and not type or paste)
+        if(2 !== $this->createMethod) {
+            // colour theme
+            $colourThemeID = $checkEmpty['colourTheme'] = $this->colourThemeID;
+            // get colour theme by name
+            $colourTheme = $colourThemeID ? $this->colours[$colourThemeID] : $this->colours[1];
+            // admin theme
+            $adminThemeID = $checkEmpty['adminTheme'] = $this->adminThemeID;
+            // get admin theme by name
+            $adminTheme = $adminThemeID ? $this->adminThemes[$adminThemeID] : $this->adminThemes[1];
+            $timezoneID = $checkEmpty['timezoneID'] = $this->timezoneID;
+        }
+        // creating via type or paste
+        else {
+            // @todo: just to be sure, check if in array $this->colours and $this->adminthemes respectively?? return error if not?
+            $colourTheme = mb_strtolower($this->colourTheme);// @todo: here or ealier?
+            $adminTheme = $this->pwAdminTheme;
+        }        
+                
         // @note: value not required so not adding to checkempty
         // @note: not required
-        $httpHostsNames = $sanitizer->purify($post->ms_http_host_names);
+        $httpHostsNames = $this->httpHostsNames;
+        $profile = $checkEmpty['profile'] = $this->profile;
 
         # 2. DATABASE (5) @note: we sanitize these later in MultisitesUtilities::validateDatabaseConfigs
         // @todo...these sanitizations OK?
-        $dbName = $checkEmpty['dbName'] = $sanitizer->text($post->ms_db_name);
-        $dbUser = $checkEmpty['dbUser'] = $sanitizer->text($post->ms_db_user);
-        $dbPass = $checkEmpty['dbPass'] = $post->ms_db_pass;
-        $dbHost = $checkEmpty['dbHost'] = $sanitizer->text($post->ms_db_host);
-        $dbPort = $checkEmpty['dbPort'] = (int) $post->ms_db_port;    
-        $dbCharset = $sanitizer->text($post->ms_db_charset);// @note: not currently in use @todo?
-        $dbEngine = $sanitizer->text($post->ms_db_engine);// @todo: -ditto-
+        $dbName = $checkEmpty['dbName'] = $this->dbName;
+        $dbUser = $checkEmpty['dbUser'] = $this->dbUser;
+        $dbPass = $checkEmpty['dbPass'] = $this->dbPass;
+        $dbHost = $checkEmpty['dbHost'] = $this->dbHost;
+        $dbPort = $checkEmpty['dbPort'] = $this->dbPort;    
+        $dbCharset = $this->dbCharset;// @note: not currently in use @todo?
+        $dbEngine = $this->dbEngine;// @todo: -ditto-
 
         # 3. SUPERUSER (4)
         // @note: validation as well below
-        $superUserName = $checkEmpty['superUserName'] = $sanitizer->pageName($post->ms_superuser_name);
-        $superUserPassword  = $checkEmpty['superUserPassword']= $post->ms_superuser_pass;
-        $superUserPasswordConfirm = $checkEmpty['superUserPasswordConfirm'] = $post->ms_superuser_pass_confirm;
-        $superUserEmail = $checkEmpty['superUserEmail'] = $sanitizer->email($post->ms_superuser_email);
+        $superUserName = $checkEmpty['superUserName'] = $this->superUserName;
+        $superUserPassword  = $checkEmpty['superUserPassword']= $this->superUserPassword;
+        $superUserPasswordConfirm = $checkEmpty['superUserPasswordConfirm'] = $this->superUserPasswordConfirm;
+        $superUserEmail = $checkEmpty['superUserEmail'] = $this->superUserEmail;
 
         #4. FILE PERMISSIONS (2)        
-        $directoriesPermissions = $checkEmpty['directoriesPermissions'] = (int) $post->ms_directories_permission;
-        $filesPermissions = $checkEmpty['filesPermissions'] = (int) $post->ms_files_permission;
+        $directoriesPermissions = $checkEmpty['directoriesPermissions'] = $this->directoriesPermissions;
+        $filesPermissions = $checkEmpty['filesPermissions'] = $this->filesPermissions;
 
         /***************************************************************************************************************/
 
@@ -180,18 +234,27 @@ class MultiSitesActions extends ProcessMultiSites {
 
         # EXTRA VALIDATIONS
 
-        // @note: check if an identical $sitedirectoryname already exists in root!  if yes, abort!
-        // duplicate site directory validation
-        $this->notices = $this->msUtilities->validateDuplicateSiteDirectory($siteDirectoryName, $this->notices);
-        if(0 == $this->notices['no_duplicate_site_directory']) {
-            $this->notices['errors'][] = $this->_('Multi Sites: An installed site with that directory already exists. Please specify a different directory name.');
+        // if single directory is path; else it is a single string for multi sites
+        $directory = $single ? $installDirectoryPath : $siteDirectoryName;
+
+        /*
+            @note: check if:
+            single-sites: the specified $installDirectoryPath has already been created at the given webroot. If not abort!
+            multi-sites: an identical site $directory already exists in this PW root!  if yes, abort!
+        */
+
+        $this->notices = $this->msUtilities->validateDuplicateSiteDirectory($directory, $this->siteType, $this->notices);
+        if(1 == $this->notices['directory_error']) {
+            if($single) $directoryError = $this->_('Multi Sites: An install directory for your single-site does not exist! Please create the directory at the specified path first.');
+            else $directoryError = $this->_('Multi Sites: An installed site with that directory already exists. Please specify a different directory name for the new multi-site.');
+            $this->notices['errors'][] = $directoryError;
             return;
         }
 
         // admin validations
         $this->notices = $this->msUtilities->validateAdminLoginName($adminLoginName, $this->notices);
         // timezone validations
-        $timezone = $this->msUtilities->validateTimezone($timezoneID);
+        $timezone = $this->timezone ? $this->timezone : $this->msUtilities->validateTimezone($timezoneID);
         // http hostnames validations
         $httpHostsNames = $this->msUtilities->validateHttpHosts($httpHostsNames);// @note: returns array
         // database configs validations
@@ -225,8 +288,8 @@ class MultiSitesActions extends ProcessMultiSites {
         if(count($this->notices['errors'])) return;
 
         # GET AND UNZIP PROFILE FILE
-        $profileFile = $this->msUtilities->getProfileFile($profileID);
-        $this->notices = $this->msUtilities->unzipProfileFile($profileFile['path'], $this->notices);
+        $profileFile = $this->msUtilities->getProfileFile($profile);
+        $this->notices = $this->msUtilities->unzipFile($profileFile['path'], $this->privateTempSitesDir, $this->notices);
 
         // return if unzip profile errors
         if(count($this->notices['errors'])) return;
@@ -259,7 +322,7 @@ class MultiSitesActions extends ProcessMultiSites {
         $values['chmodFile'] = $filesPermissions;
         $values['timezone'] = $timezone;
         $values['temp_site_directory_name'] = $profileTopDirectory;
-        $values['site_directory_name'] = $siteDirectoryName;
+        #$values['site_directory_name'] = $siteDirectoryName;// @todo: need this?
         
         // write to config.php
         $this->notices = $this->msUtilities->dbSaveConfigFile($values, $this->notices);
@@ -273,15 +336,21 @@ class MultiSitesActions extends ProcessMultiSites {
         // return if errors importing profiles
         if(count($this->notices['errors'])) return;
 
-        # REMOVE /SITE/INSTALL FOLDER + RENAME & MOVE SITE FOLDER!  
+        # REMOVE /SITE/INSTALL FOLDER + RENAME & MOVE SITE FOLDER! 
+        // @todo...is this ok for single sites?
         $this->notices = $this->msUtilities->removeInstallDirectory($profileTopDirectory, $this->notices);
-        $this->notices = $this->msUtilities->renameAndMoveSite($profileTopDirectory, $siteDirectoryName, $this->notices);
+        
+        $this->notices = $this->msUtilities->renameAndMoveSite($profileTopDirectory, $directory, $this->siteType, $this->notices);
         // return if errors removing install directory and moving site failed/errors
         if(count($this->notices['errors'])) return;
 
-        # UPDATE/WRITE TO sites.json        
-        $this->notices = $this->msUtilities->addToSitesJSON($hostAndDomainName, $siteDirectoryName, $this->notices);
-        if(count($this->notices['errors'])) return;
+        # GET, UNZIP AND MOVE WIRE FOLDER AND FILES TO SPECIFIED WEBROOT if single-site
+        if($single) $this->notices = $this->msUtilities->moveWire($directory, $processWireVersion, $this->notices);        
+        // ELSE
+        # UPDATE/WRITE TO 'sites.json' if multi-site
+        else $this->notices = $this->msUtilities->addToSitesJSON($hostAndDomainName, $siteDirectoryName, $this->notices);
+        
+        if(count($this->notices['errors'])) return; 
 
         # UPDATE/SAVE SUPERUSER ACCOUNT + ADMIN + THEME FOR NEW SITE        
         $adminAccountValues = array(
@@ -293,19 +362,20 @@ class MultiSitesActions extends ProcessMultiSites {
             'colourTheme' => ('reno' == $colourTheme ? '' : $colourTheme),// @todo: ideally in a converter?
             'adminTheme' => $adminTheme,
             'siteDirectoryName' => $siteDirectoryName,
+            'installDirectoryPath' => $installDirectoryPath,
             'hostAndDomainName' => $hostAndDomainName,
         );
 
-        $this->notices = $this->msUtilities->adminAccountSave($adminAccountValues, $this->notices);
+        $this->notices = $this->msUtilities->adminAccountSave($adminAccountValues, $this->siteType, $this->notices);
         // return if errors saving admin account
         if(count($this->notices['errors'])) return;
-        
+                
         # CREATE A RECORD/PAGE OF THE INSTALL ('installed site')
         // pass sanitized values for saving to install page
         $installPageValues = array(
             'title' => $title,
             'description' => $description,
-            'directory' => $siteDirectoryName,
+            'directory' => $directory,// @note: contextual for single vs. multi-site
             'hostAndDomainName' => $hostAndDomainName,
             'profileFile' => $profileFile['name'],
             'adminLoginName' => $adminLoginName,
@@ -319,12 +389,356 @@ class MultiSitesActions extends ProcessMultiSites {
             'superUserName' => $superUserName,
             'superUserEmail' => $superUserEmail,
             'chmodDir' => $directoriesPermissions,
-            'chmodFile' => $filesPermissions,        
+            'chmodFile' => $filesPermissions,
+            'siteType' => $this->siteType,
+            'pwVersion' => $processWireVersion,// @note: the page ID!
         );
 
         $this->notices = $this->actionCreateInstalledSitePage($installPageValues, $this->notices);
 
         return; 
+
+    }
+
+    /**
+     * Process and set values for installing a ProcessWire site using the full form.
+     *
+     * @access private
+     * @param object $post Form with settings for site creation.
+     * 
+     */
+    private function actionCreateForm($post) {
+
+        $sanitizer = $this->wire('sanitizer');
+
+        # 1. SITE
+        // @todo? sanitize OK?
+        // multi-site: install directory (string)
+        $this->siteDirectoryName = $sanitizer->pageName($post->ms_site_directory);
+        // single-site: install directory (path). use directory separator? @todo?
+        #$this->installDirectoryPath = rtrim($sanitizer->text($post->ms_site_install_directory),DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+        $this->installDirectoryPath = $sanitizer->text($post->ms_site_install_directory);
+        // single site: processwire version
+        $this->processWireVersion = (int) $post->ms_create_pw_version_select;        
+        
+        // @todo? sanitize URL?
+        $this->hostAndDomainName = $sanitizer->text($post->ms_site_domain);
+        $this->profile = (int) $post->ms_installation_profile;
+        $this->adminLoginName = $sanitizer->pageName($post->ms_admin_url);// @note:doing other validations later
+        // colour theme
+        $this->colourThemeID = (int) $post->ms_colour_theme;
+        // admin theme
+        $this->adminThemeID = (int) $post->ms_admin_theme;
+
+        $this->timezoneID = (int) $post->ms_timezone_id;
+        // @note: value not required so not adding to checkempty
+        // @note: not required
+        $this->httpHostsNames = $sanitizer->purify($post->ms_http_host_names);
+
+        # 2. DATABASE (5) @note: we sanitize these later in MultisitesUtilities::validateDatabaseConfigs
+        // @todo...these sanitizations OK?
+        $this->dbName = $sanitizer->text($post->ms_db_name);
+        $this->dbUser = $sanitizer->text($post->ms_db_user);
+        $this->dbPass = $post->ms_db_pass;
+        $this->dbHost = $sanitizer->text($post->ms_db_host);
+        $this->dbPort = (int) $post->ms_db_port;    
+        $this->dbCharset = $sanitizer->text($post->ms_db_charset);// @note: not currently in use @todo?
+        $this->dbEngine = $sanitizer->text($post->ms_db_engine);// @todo: -ditto-
+
+        # 3. SUPERUSER (4)
+        // @note: validation as well below
+        $this->superUserName = $sanitizer->pageName($post->ms_superuser_name);
+        $this->superUserPassword  = $post->ms_superuser_pass;
+        $this->superUserPasswordConfirm = $post->ms_superuser_pass_confirm;
+        $this->superUserEmail = $sanitizer->email($post->ms_superuser_email);
+
+        #4. FILE PERMISSIONS (2)        
+        $this->directoriesPermissions = (int) $post->ms_directories_permission;
+        $this->filesPermissions = (int) $post->ms_files_permission;
+
+
+
+        /*
+            SITE
+            -------
+
+            pw version (single site)
+            Install Directory (single site) OR Site Directory (multi site)
+            Hostname and Domain
+            Installation Profile
+            Admin Login URL
+            Admin Theme
+            Colour Theme
+            Default Time Zone
+            HTTP Host Names
+
+            DATABASE
+            ---------
+            DB Name
+            DB User
+            DB Password
+            DB Host
+            DB Port
+
+            SUPERUSER
+            ---------
+            User Name
+            Password
+            Password (confirm)
+            Email Address
+
+
+            FILE PERMISSIONS
+            ----------------
+            Directories 
+            Files
+        
+        */
+
+    }
+
+    /**
+     * Process and set values for installing a ProcessWire site using type or paste method.
+     *
+     * @access private
+     * @param object $post Form with settings for site creation.
+     * 
+     */
+    private function actionCreateTypePaste($post) {
+
+        // @note: here we use some 'user-friendly' indexes, e.g. 'user' rather than the normal 'superUserName' we use elsewhere
+        
+        /*         
+            ## REQUIRED (INDIVIDUAL) VALUES FROM POST ##
+
+            # @FROM $post
+
+            SITE
+            -------
+            Site Type
+            title
+            description
+
+            pw version (single site)
+            Install Directory (single site)
+            Installation Profile // @note: moved from copy paste; easier to pick from select(?)
+            HTTP Host Names
+
+            ## ALLOWABLE COPY-PASTED VALUES ##
+
+            @from $post->ms_create_copy_paste
+            $typePasteConfigurations = $post->ms_create_copy_paste;
+
+            SITE
+            -------
+
+            Site Directory (multi site)
+            Hostname and Domain            
+            Admin Login URL
+            Admin Theme
+            Colour Theme
+            Default Time Zone
+            
+
+            DATABASE
+            ---------
+            DB Name
+            DB User
+            DB Password
+            DB Host
+            DB Port
+
+            SUPERUSER
+            ---------
+            User Name
+            Password
+            Password (confirm)
+            Email Address
+
+
+            FILE PERMISSIONS
+            ----------------
+            Directories 
+            Files
+        
+        */
+
+        $sanitizer = $this->wire('sanitizer');
+        $configs = array();
+
+        $pageNameSanitize = array('site','admin','user');
+        $textSanitize = array('profile','colour','theme','timezone','hostDomain','dbName','dbUser','dbHost','dbCharset','dbEngine');
+        $intSanitize = array('dbPort', 'chmodDir', 'chmodFile');
+        $emailSanitize = array('email');
+
+        $rawConfigs = $post->ms_create_copy_paste;
+        $defaultConfigs = $this->msUtilities->getDefaultInstallConfigs();
+
+        if(1 == $this->siteType) unset($defaultConfigs['site']);
+
+        // get combined key=value pairs first (comma-separated)
+        $configurableValuesArray = explode(',', $rawConfigs);
+        
+        foreach($configurableValuesArray as $c) {
+
+            $keyPair = explode('=', $c);
+            $property = $keyPair[0];
+            $value = $keyPair[1];
+
+            // sanitize
+            if(in_array($property, $intSanitize)) $value = (int) $value;
+            elseif(in_array($property, $emailSanitize)) $value = $sanitizer->email($value);
+            elseif(in_array($property, $textSanitize)) $value = $sanitizer->text($value);
+            elseif(in_array($property, $pageNameSanitize)) $value = $sanitizer->pageName($value);
+
+            if(isset($defaultConfigs[$property])) $this->$defaultConfigs[$property] = $value;
+            $configs[$property] = $value;
+
+        }        
+        
+        if(count($configs) < count($defaultConfigs)) {
+            $this->notices['errors'][] = $this->_('Some required key=>value pairs are missing');
+        }
+
+        # @FROM POST
+
+        // use directory separator? @todo?
+        #$this->installDirectoryPath = rtrim($sanitizer->text($post->ms_site_install_directory),DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+        $this->installDirectoryPath = $sanitizer->text($post->ms_site_install_directory);
+        // single site: processwire version
+        $this->processWireVersion = (int) $post->ms_create_pw_version_select;
+        $this->profile = (int) $post->ms_installation_profile;
+        $this->httpHostsNames = $sanitizer->purify($post->ms_http_host_names);
+
+    }
+
+    /**
+     * Process and set values for installing a ProcessWire site using a saved install configuration method.
+     *
+     * @access private
+     * @param object $post Form with settings for site creation.
+     * 
+     */
+    private function actionCreateInstallConfig($post) {
+
+        $sanitizer = $this->wire('sanitizer');
+        $configID = (int) $post->ms_create_json_configs;
+        $configs = $this->msUtilities->getSavedInstallConfiguration($configID);
+        
+        /*
+
+            ## REQUIRED INPUTS IN POST ##
+
+            SITE
+            -------
+            Site Type
+            title
+            description
+
+            pw version (single site)
+            Install Directory (single site) OR Site Directory (multi site)
+            Hostname and Domain
+            Admin Login URL
+            HTTP Host Names
+
+            DATABASE
+            ---------
+            DB Name
+            DB Password
+
+            SUPERUSER
+            ---------
+            Password
+            Password (confirm)
+
+
+            ## VALUES SAVED IN CONFIG ##
+
+            SITE
+            -------
+
+            Installation Profile (ID)
+            Admin Theme (ID)
+            Colour Theme (ID)
+            Default Time Zone (ID)
+
+            DATABASE
+            ---------
+            DB User
+            DB Host
+            DB Port
+
+            SUPERUSER
+            ---------
+            User Name
+            Email Address
+
+            FILE PERMISSIONS
+            ----------------
+            Directories 
+            Files
+        
+        */
+
+        // @todo: refactor! some duplication here vs. actioncreateform()             
+
+        # 1. SITE
+
+         # @FROM POST
+
+        // @todo? sanitize OK?
+        // multi-site: install directory (string)
+        $this->siteDirectoryName = $sanitizer->pageName($post->ms_site_directory);
+        // single-site: install directory (path). use directory separator? @todo?
+        #$this->installDirectoryPath = rtrim($sanitizer->text($post->ms_site_install_directory),DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+        $this->installDirectoryPath = $sanitizer->text($post->ms_site_install_directory);
+        // single site: processwire version
+        $this->processWireVersion = (int) $post->ms_create_pw_version_select;        
+        
+        // @todo? sanitize URL?
+        $this->hostAndDomainName = $sanitizer->text($post->ms_site_domain);
+        $this->adminLoginName = $sanitizer->pageName($post->ms_admin_url);// @note:doing other validations later
+
+        // @note: not required
+        $this->httpHostsNames = $sanitizer->purify($post->ms_http_host_names);
+
+        # @FROM SAVED INSTALL CONFIG
+        $this->profile = (int) $configs['profileFile'];
+        // colour theme
+        $this->colourThemeID = (int) $configs['colourTheme'];
+        // admin theme
+        $this->adminThemeID = (int) $configs['adminTheme'];
+        $this->timezoneID = (int) $configs['timezone'];
+
+         # 2. DATABASE (5) @note: we sanitize these later in MultisitesUtilities::validateDatabaseConfigs
+
+        # @FROM POST
+        // @todo...these sanitizations OK?
+        $this->dbName = $sanitizer->text($post->ms_db_name);
+        $this->dbPass = $post->ms_db_pass;
+        
+        # @FROM SAVED INSTALL CONFIG
+        $this->dbUser = $sanitizer->text($configs['dbUser']);
+        $this->dbHost = $sanitizer->text($configs['dbHost']);
+        $this->dbPort = (int) $configs['dbPort'];
+        // @todo?  
+        $this->dbCharset = isset($configs['dbCharset']) ? $sanitizer->text($configs['dbCharset']) : '';// @note: not currently in use 
+        $this->dbEngine = isset($configs['dbEngine']) ? $sanitizer->text($configs['dbEngine']) : '';// @todo: -ditto-
+       
+        # 3. SUPERUSER (4)
+        # @FROM POST
+        $this->superUserPassword  = $post->ms_superuser_pass;
+        $this->superUserPasswordConfirm = $post->ms_superuser_pass_confirm;
+        
+        # @FROM SAVED INSTALL CONFIG
+        $this->superUserName = $sanitizer->pageName($configs['superUserName']);
+        $this->superUserEmail = $sanitizer->email($configs['superUserEmail']);
+
+        #4. FILE PERMISSIONS (2)
+        # @FROM SAVED INSTALL CONFIG   
+        $this->directoriesPermissions = (int) $configs['chmodDir'];
+        $this->filesPermissions = (int) $configs['chmodFile'];
+
 
     }
 
@@ -368,19 +782,19 @@ class MultiSitesActions extends ProcessMultiSites {
      * The method calls other methods for specific actions.
      *
 	 *	@access private
-	 *	@param Object $post Form with items to process.
+	 *	@param object $post Form with items to process.
 	 *
 	 */
 	private function actionProfiles($post) {
-      
+        
         $action = $this->wire('sanitizer')->fieldName($post->ms_items_action_select);
+   
         // @note: array
         $items = $post->ms_items_action_selected;
 
         if('select' == $action) {
-            $data['result'] = 'error';
-            $data['notice'] = $this->_('Multi Sites: You need to select an action to apply.');
-            return $data;
+            $this->notices['errors'][] = $this->_('Multi Sites: You need to select an action to apply.');
+            return;
         }
 
         if(!count($items)) {// @note: we also do some client-side validations
@@ -397,13 +811,13 @@ class MultiSitesActions extends ProcessMultiSites {
     } 
     
 	/**
-	 * Save new profiles.
+	 * Upload and Save new or edited profiles.
 	 *
      * Profiles are saved as pages.
      * Uploaded profile files must be in the format site-xxx.zip
 	 *
 	 *	@access private
-	 *	@param Object $post Form with items to process.
+	 *	@param object $post Form with items to process.
 	 *
 	 */
 	private function actionUpload($post) {
@@ -426,7 +840,7 @@ class MultiSitesActions extends ProcessMultiSites {
 
         if('edit_profile' == $action) $this->notices['redirect'] = $this->wire('page')->url . $this->wire('input')->urlSegmentsStr . '/';
 
-        // process form
+        // process profile file
         $profileFile = isset($_FILES['ms_upload_profile_file']) && strlen($_FILES['ms_upload_profile_file']['name']) ? true : false;
         
         // check if file needed and if sent
@@ -456,7 +870,7 @@ class MultiSitesActions extends ProcessMultiSites {
         else {
             $page = new Page();
             $page->template = 'multi-sites-site-profile';
-            $page->parent = $this->wire('pages')->get('parent.name=multi-sites,name=multi-sites-profiles, template=multi-sites-site-profiles');
+            $page->parent = $parent;
         }
        
         # title check
@@ -473,7 +887,7 @@ class MultiSitesActions extends ProcessMultiSites {
         $child = $parent->child( "name={$page->name}, id!={$page->id}, include=all" )->id;
 
         if($child) {
-            //if name already in use return error
+            // if name already in use return error
             $this->notices['errors'][] = $this->_('Multi Sites: A profile with that title already exists. Amend the title and try again.');
             return;
         }
@@ -500,7 +914,6 @@ class MultiSitesActions extends ProcessMultiSites {
             # make sure there are actually files; if so, proceed; if not, return error
             if(!count($files) && 'upload' == $action){
                 $this->notices['errors'][] = $this->_('Multi Sites: There was an error uploading the profile file. Please try again.');
-                #return $this->notices;
                 return;
             }
 
@@ -543,7 +956,341 @@ class MultiSitesActions extends ProcessMultiSites {
 
         return;
 
-    }   
+    }
+
+    /**
+     * Bulk action site install configurations.
+     *
+     * @access private
+     * @param object $post Form with items to process.
+     * 
+     */ 
+    private function actionConfigs($post) {
+
+        $action = $this->wire('sanitizer')->fieldName($post->ms_items_action_select);
+        // @note: array
+        $items = $post->ms_items_action_selected;
+
+        if('select' == $action) {
+            $this->notices['errors'][] = $this->_('Multi Sites: You need to select an action to apply.');
+            return;
+        }
+
+        if(!count($items)) {// @note: we also do some client-side validations
+            $this->notices['errors'][] = $this->_('Multi Sites: You need to select install configurations to action.');
+            return;
+        }
+
+        // @note: available actions here -> lock; unlock, delete (trash?)
+        if('lock' == $action) $this->actionLock($items, 1);
+        elseif('unlock' == $action) $this->actionLock($items, 0);
+        elseif('trash' == $action) $this->actionDelete($items, 1);// @note/@todo:? not in use currently
+        elseif('delete' == $action) $this->actionDelete($items, 0);
+
+    }
+
+    /**
+     * Add new or edit install configurations.
+     *
+     * @access private
+     * @param object $post Form with items to process.
+     * 
+     */ 
+    private function actionConfig($post) {
+
+        /*
+            @note:
+            - irrespective of $action, all fields except description/summary are required
+            - if $action can be either 'config' [creating/adding newe config] OR 'edit_config' 
+        */
+
+        # PREPARE VARIABLES.
+        $action = $post->ms_edit_config_btn ? 'edit_config' : 'config';
+        $sanitizer = $this->wire('sanitizer');
+        $checkEmpty = array();
+        
+        $title = $checkEmpty['title'] = $sanitizer->text($post->ms_site_title);
+        
+        $description = $sanitizer->purify($post->ms_site_description);
+
+        // set values to variables
+        $this->actionCreateForm($post);
+
+        $checkEmpty['profile'] = $this->profile;// profile ID     
+        $checkEmpty['adminTheme'] = $this->adminThemeID;// admin theme ID        
+        $checkEmpty['colourTheme'] = $this->colourThemeID;// colour theme ID       
+        $checkEmpty['timezoneID'] = $this->timezoneID = (int) $post->ms_timezone_id; // timezone ID
+        $checkEmpty['dbUser'] = $this->dbUser;// db User        
+        $checkEmpty['dbHost'] = $this->dbHost;// db host        
+        $checkEmpty['dbPort'] = $this->dbPort;// db port 
+        $checkEmpty['superUserName'] = $this->superUserName;// superuser name
+        $checkEmpty['superUserEmail'] = $this->superUserEmail;// superuser email        
+        $checkEmpty['directoriesPermissions'] = $this->directoriesPermissions;// directories 
+        $checkEmpty['filesPermissions'] = $this->filesPermissions;// files permission
+
+        # CHECK EMPTIES
+        $empties = array_filter($checkEmpty, function($var){return empty($var);} );
+        
+        if(count($empties)) {
+            $error = $this->_('Multi Sites: Some required settings were not completed. These are') . ':<br> ' . implode("<br>",array_keys($empties));
+            $this->notices['errors'][] = $error;
+            return;
+        }
+
+        # EXTRA VALIDATIONS
+
+        // database configs validations
+        $databaseConfigs = array(
+            'dbUser' => $this->dbUser,
+            'dbHost' => $this->dbHost,
+            'dbPort' => $this->dbPort,
+            'dbEngine' => $this->dbEngine,// @todo: @see note above
+            'dbCharset' => $this->dbCharset,// @todo: -ditto-
+        );
+
+        $databaseConfigs = $this->msUtilities->validateDatabaseConfigs($databaseConfigs);// @note: array
+
+        // supersuer validations
+        $this->notices = $this->msUtilities->validateSuperUserName($this->superUserName, $this->notices);
+        $this->notices = $this->msUtilities->validateSuperUserEmail($this->superUserEmail, $this->notices);
+        // file permissions validations
+        $this->notices['directories_permission'] = 1;
+        $this->notices['files_permission'] = 1;
+        $permissionsArray = array('directories' => $this->directoriesPermissions, 'files' => $this->filesPermissions);
+        foreach ($permissionsArray as $permission => $value) {
+            $validPermission = $this->msUtilities->validateFilePermissions($value);
+            if(!$validPermission) {
+                $this->notices['errors'][] = sprintf(__('Value for %s permissions is invalid.'), $permission);
+                $this->notices[$permission . '_permission'] = 0;
+            }
+            else $this->{"{$permission}Permissions"} = $value;
+        }
+        // return if validation errors found
+        if(count($this->notices['errors'])) return;        
+
+        if('edit_config' == $action) $this->notices['redirect'] = $this->wire('page')->url . $this->wire('input')->urlSegmentsStr . '/';
+       
+        $parent = $this->wire('pages')->get('parent.name=multi-sites,name=multi-sites-install-configurations, template=multi-sites-install-configurations');
+
+        // check if editing vs creating a profile        
+        $configPageID = (int) $post->ms_edit_config;
+        
+        if($configPageID) {
+            $page = $this->wire('pages')->get($configPageID);
+            if(!$page->id) {
+                $this->notices['errors'][] = $this->_('Multi Sites: We could not find that configuration.');
+                return;
+            }
+            if($page->is(Page::statusLocked)) {                
+                $this->notices['warnings'][] = $this->_('Multi Sites: Install configuration locked for edits.');
+                return;
+            }           
+        }
+        else {
+            $page = new Page();
+            $page->template = 'multi-sites-install-configuration';
+            $page->parent = $parent;
+        }
+       
+        # title check
+        $page->title = $sanitizer->text($post->ms_site_title);
+        // if no title provided return error
+        if(!$page->title) {
+            $this->notices['errors'][] = $this->_('Multi Sites: A title is required.');
+            return;
+        }
+        
+        # install config name check
+        // if a title was provided, we sanitize and convert it to a URL friendly page name
+        if($page->title) $page->name = $sanitizer->pageName($page->title);
+        $child = $parent->child( "name={$page->name}, id!={$page->id}, include=all" )->id;
+
+        if($child) {
+            // if name already in use return error
+            $this->notices['errors'][] = $this->_('Multi Sites: An install configuration with that title already exists. Amend the title and try again.');
+            return;
+        } 
+        
+        # good to go        
+
+        // pass sanitized values for saving to install page
+        $installConfigValues = array(
+            'summary' => $description,
+            'profileFile' => $this->profile,
+            'colourTheme' => $this->colourThemeID,
+            'adminTheme' => $this->adminThemeID,
+            'timezone' => $this->timezoneID,
+            'dbUser' => $this->dbUser,
+            'dbHost' => $this->dbHost,
+            'dbHost' => $this->dbPort,
+            'superUserName' => $this->superUserName,
+            'superUserEmail' => $this->superUserEmail,
+            'chmodDir' => $this->directoriesPermissions,
+            'chmodFile' => $this->filesPermissions,
+        );
+
+        // merge values with validated db values for final array
+        $installConfigValues = array_merge($installConfigValues, $databaseConfigs);
+        
+        // encode settings as JSON and save (to) page
+        $page->multi_sites_settings = wireEncodeJSON($installConfigValues);
+        $page->save();
+                
+        $this->notices['messages'][] = $this->_('Multi Sites: Install Configuration saved.');
+
+        return;
+        
+    }
+
+    /**
+     * Bulk action ProcessWire versions list.
+     *
+     * @access private
+     * @param object $post Form with items to process.
+     * @param array $notices Array for user feedback regarding action results.
+     * 
+     */
+    private function actionVersions($post) {
+
+        $action = $this->wire('sanitizer')->fieldName($post->ms_items_action_select);
+
+        // @note: array
+        $items = $post->ms_items_action_selected;
+
+        if('select' == $action) {
+            $this->notices['errors'][] = $this->_('Multi Sites: You need to select an action to apply.');
+            return;
+        }
+
+        if(!count($items)) {// @note: we also do some client-side validations
+            $this->notices['errors'][] = $this->_('Multi Sites: You need to select versions to action.');
+            return;
+        }
+
+        // @note: available actions here -> lock; unlock, delete (trash?)
+        if('lock' == $action) $this->actionLock($items, 1);
+        elseif('unlock' == $action) $this->actionLock($items, 0);
+        elseif('trash' == $action) $this->actionDelete($items, 1);// @note/@todo:? not in use currently
+        elseif('delete' == $action) $this->actionDelete($items, 0);
+        elseif('download' == $action) $this->actionDownload($post);
+
+        return $notices;
+
+    }
+    
+    /**
+     * Download different versions of ProcessWire per request.
+     *
+     * @access private
+     * @param object $post Form with items to process.
+     * 
+     */
+    private function actionDownload($post) {
+        
+        $items = $post->ms_items_action_selected;
+        $versionIndexes = $post->ms_processwire_version_index;
+        $sanitizer = $this->wire('sanitizer');
+        $parent = $this->wire('pages')->get('parent.name=multi-sites,name=multi-sites-processwire-files, template=multi-sites-wires');
+        
+        $actionStr = $this->_('downloaded'); 
+
+        if(count($items)) {
+
+            $i = 0;// count for success actions
+            $j = 0;// count for failed actions
+
+            foreach ($versionIndexes as $key => $index) {
+                $versionIndex = (int) $index;
+                $id = $items[(int)$key];
+
+                # check if refreshing version vs. creating new                
+                
+                // editing version page
+                if($id) {
+                    $page = $this->wire('pages')->get($id);                    
+                    if($page->id && $page->id > 0) {
+                        if($page->is(Page::statusLocked)) {                
+                            $this->notices['warnings'][] = $this->_('Multi Sites: Version page locked for edits.');
+                            $j++;
+                            continue;
+                        }
+                    }
+                    // could not find the specified version page
+                    else {
+                        $this->notices['errors'][] = sprintf(__('Multi Sites: Could not find a version page with ID: %s.'), $id);
+                        $j++;
+                        continue;
+                    }                              
+                }
+                // creating new version page
+                else {
+                    $page = new Page();
+                    $page->template = 'multi-sites-wire';
+                    $page->parent = $parent;
+                }
+                
+                # title check
+                $version = $this->msUtilities->getProcessWireVersionsInfo($versionIndex);
+                $page->title = $version['title'];
+                
+                # version name check
+                // if a title was provided, we sanitize and convert it to a URL friendly page name
+                if($page->title) $page->name = $sanitizer->pageName($page->title);
+                $child = $parent->child( "name={$page->name}, id!={$page->id}, include=all" )->id;
+        
+                if($child) {
+                    // if name already in use return error @note: in such a case, user must have physically created the page
+                    $this->notices['errors'][] = $this->_('Multi Sites: A version page with that title already exists. Please delete that page and try again.');
+                    $j++;
+                    continue;
+                }
+
+                set_time_limit(60);// try not to timeout
+                // download processwire version
+                $this->notices = $this->msUtilities->downloadProcessWireVersion($versionIndex, $this->notices);
+                // if could not download processwire file or downloaded but could not compress for saving to page as file
+                if(0 == $this->notices['download'] || 0 == $this->notices['wire_zip']) {
+                    $j++;// @see delete directory
+                    continue;
+                }
+
+                // the name given to the downloaded proceswire zip file
+                $zipFileName = $version['zip'];
+                // full path to the downloaded and processed processwire zip file (in temp directory)
+                $zipFile = $this->privateTempUploadsDir . $zipFileName;
+
+                // save
+                $page->save();
+                // add processwire wire zip file and save again
+                $page->multi_sites_files->deleteAll();
+                $page->multi_sites_files->add($zipFile);
+                $page->save('multi_sites_files'); 
+        
+                // remove the temp pw zip file
+                unlink($zipFile);
+
+                $i++;
+
+            }// end foreach
+
+            /* prepare responses */
+            if($i > 0) {
+                // success       
+                $this->notices['messages'][] = sprintf(_n('Multi Sites: %1$d item %2$s.', 'Multi Sites: %1$d items %2$s.', $i, $actionStr), $i, $actionStr);
+                // warnings
+                if($j) $this->notices['warnings'][] =  sprintf(_n('%1$d item could not be %2$s', '%1$d items could not be %2$s', $j, $actionStr), $j, $actionStr);
+            }
+
+            // if we could not download/save any items
+            else {
+                $this->notices['errors'][] = sprintf(__('Multi Sites: Selected items could not be %s.'), $actionStr);
+            }
+
+        }// end if count($items)
+
+        return;
+
+    }
      
 	/**
      * Lock/Unlock items.
@@ -680,9 +1427,10 @@ class MultiSitesActions extends ProcessMultiSites {
     }
 
     /**
-     * Delete the site directory for selected installed sites.
+     * Delete the site directory(ies) for selected installed sites.
      *
-     * These are the directories in ProcessWire root.
+     * Single sites: This is the whole document root folder where PW is installed.
+     * Multi Sites: These are the 'site' directories in ProcessWire root.
      * They are named in the format 'site-xxx' as per ProcessWire's multisite strategy.
      * Also deletes the site's page record if specified.
      *
@@ -718,7 +1466,17 @@ class MultiSitesActions extends ProcessMultiSites {
                     $j++;
                     continue;
                 }
-                $sitePath = $this->msUtilities->getSitePath($siteDirectoryName);
+
+                // continue if we don't know site type, otherwise we risk deleting wrong directory!
+                $siteType = isset($installedSiteSettings['siteType']) ? $installedSiteSettings['siteType'] : '';
+                if(!$siteType) {
+                    $j++;
+                    continue;
+                }
+
+                // single-site vs multi-site install path
+                $sitePath = 1 == $siteType ?  $installedSiteSettings['directory'] : $this->msUtilities->getSitePath($siteDirectoryName);
+
                 // delete installed site directory
                 if(is_dir($sitePath)) {
                     $this->notices = $this->msUtilities->removeDirectory($sitePath, $this->notices);
@@ -730,7 +1488,10 @@ class MultiSitesActions extends ProcessMultiSites {
                     continue;
                 }
 
-                if(isset($installedSiteSettings['directory'])) $this->removedSites[$p->id] = 'site-' . $siteDirectoryName;
+                if(isset($installedSiteSettings['directory'])) {
+                    $removedSite = 1 == $siteType ? $sitePath : 'site-' . $siteDirectoryName;
+                    $this->removedSites[$p->id] = $removedSite;
+                }
 
                 // delete item's page record now if not waiting for database to be deleted (and subsequently the page record)
                 if(!$wait) {
@@ -762,7 +1523,7 @@ class MultiSitesActions extends ProcessMultiSites {
             }            
 
         }// end if count($items)
-
+ 
         return;
 
     }
@@ -777,6 +1538,7 @@ class MultiSitesActions extends ProcessMultiSites {
      *
      */
     private function actionDeleteDatabase($items) {
+        
         
         $pages = $this->wire('pages');
         
@@ -849,7 +1611,8 @@ class MultiSitesActions extends ProcessMultiSites {
      *
      * Components: pages, fields, templates and files.
      *
-     * @param Object $post Form with cleanup instructions.
+     * @access private
+     * @param object $post Form with cleanup instructions.
      *
      */
     private function actionCleanup($post) {

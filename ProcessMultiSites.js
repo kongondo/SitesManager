@@ -47,7 +47,7 @@ function timeZonesAutocomplete(i) {
 		response: function(event, ui) {// @note: check if content found
             // ui.content is the array that's about to be sent to the response callback.
             if (ui.content.length === 0) {
-				//noTimeZoneFoundNotice();// @todo?!!		
+				//noTimeZoneFoundNotice();// @todo?	
             } 
 
             /*else {
@@ -167,10 +167,13 @@ function validateForm(form) {
  * @returns 
  */
 function validateRequieredFields(form, valid) {
-    var inputs = form.find('input, select');
+    var inputs = form.find('input, select, textarea#ms_create_copy_paste').not('input#ms_timezone_id,input#ms_confirm');
     inputs.each(function () {
         var i = ($(this));
-        if (i.val() == '') {
+        var val = i.val();
+        var hiddenParent = i.closest('div.ms_hide');
+        if (hiddenParent.length) return;
+        if (0 == val) {
             valid.errors = 1;
             return false;
         }
@@ -189,7 +192,11 @@ function validateRequieredFields(form, valid) {
  */
 function validateAdminName(form, valid) {
 
-    var adminName = form.find('input#ms_admin_url').val();
+    var admin = form.find('input#ms_admin_url');
+    var hiddenParent = admin.closest('div.ms_hide');
+    if(hiddenParent.length) return valid;
+    //var adminName = form.find('input#ms_admin_url').val();
+    var adminName = admin.val();
 
     // admin name disallowed ('wire' and 'site')
     if (adminName == 'wire' || adminName == 'site') {
@@ -199,7 +206,7 @@ function validateAdminName(form, valid) {
     }
 
     // admin name too short [shoudl be at least 2 char]
-    if (adminName.length < 2) {
+    if (admin.length && adminName.length < 2) {
         valid.errors = 1;
         var notice = $('p#ms_admin_name_short').text();
         valid.notices.push(notice);
@@ -223,45 +230,57 @@ function validateAdminName(form, valid) {
  * @returns 
  */
 function validateSuperUser(form, valid) {
-    
-    var superUserName = form.find('input#ms_superuser_name').val();
-    var superUserPassword = form.find('input#ms_superuser_pass').val();
-    var superUserPasswordConfirm = form.find('input#ms_superuser_pass_confirm').val();
-    var superUserEmail = form.find('input#ms_superuser_email').val();
-    
-    // superuser name disallowed characters [a-z 0-9]
-    if (!validateCharacters(superUserName)) {
-        valid.errors = 1;
-        var notice = $('p#ms_superuser_name_characters_disallowed').text();
-        valid.notices.push(notice);
+
+    var name = form.find('input#ms_superuser_name');
+    var password = form.find('input#ms_superuser_pass');
+    var passwordConfirm = form.find('input#ms_superuser_pass_confirm');
+    var email = form.find('input#ms_superuser_email');
+
+    var superUserName = name.val();
+    var superUserPassword = password.val();
+    var superUserPasswordConfirm = passwordConfirm.val();
+    var superUserEmail = email.val();
+
+    var hiddenParentName = name.closest('div.ms_hide');    
+    if (!hiddenParentName.length) {
+        // superuser name disallowed characters [a-z 0-9]
+        if (!validateCharacters(superUserName)) {
+            valid.errors = 1;
+            var notice = $('p#ms_superuser_name_characters_disallowed').text();
+            valid.notices.push(notice);
+        }
+        // superuser name too short
+        if (superUserName.length < 2) {
+            valid.errors = 1;
+            var notice = $('p#ms_superuser_name_short').text();
+            valid.notices.push(notice);
+        } 
     }
-
-    // superuser name too short
-    if (superUserName.length < 2) {
-        valid.errors = 1;
-        var notice = $('p#ms_superuser_name_short').text();
-        valid.notices.push(notice);
-    }  
-
-    // superuser passwords mismatch
-    if (superUserPassword !== superUserPasswordConfirm) {
-        valid.errors = 1;
-        var notice = $('p#ms_superuser_passwords_mismatch').text();
-        valid.notices.push(notice);
-    }
-
-    // superuser password too short [should be at least 6 char]
-    if (superUserPassword.length < 6) {
-        valid.errors = 1;
-        var notice = $('p#ms_superuser_password_short').text();
-        valid.notices.push(notice);
-    } 
     
-    // superuser email invalid
-    if (!validateEmail(superUserEmail)) {
-        valid.errors = 1;
-        var notice = $('p#ms_superuser_email_invalid').text();
-        valid.notices.push(notice);
+    var hiddenParentPassword = password.closest('div.ms_hide');
+    if (!hiddenParentPassword.length) { 
+        // superuser passwords mismatch
+        if (superUserPassword !== superUserPasswordConfirm) {
+            valid.errors = 1;
+            var notice = $('p#ms_superuser_passwords_mismatch').text();
+            valid.notices.push(notice);
+        }
+        // superuser password too short [should be at least 6 char]
+        if (password.length && superUserPassword.length < 6) {
+            valid.errors = 1;
+            var notice = $('p#ms_superuser_password_short').text();
+            valid.notices.push(notice);
+        }
+    }
+    
+    var hiddenParentEmail = email.closest('div.ms_hide');
+    if (!hiddenParentEmail.length) { 
+        // superuser email invalid
+        if (!validateEmail(superUserEmail)) {
+            valid.errors = 1;
+            var notice = $('p#ms_superuser_email_invalid').text();
+            valid.notices.push(notice);
+        }
     }
 
     return valid;
@@ -385,13 +404,160 @@ function clearDeleteList() {
     $('select#ms_items_action_select').val('select');
 }
 
+/**
+ * spinner for UX.
+ *
+ * This is used in single edit variations congiguration.
+ *
+ * @param Object i Spinner <i> element to show/hide.
+ * @param String mode Whether to show or hide i element.
+ *
+ */
+function spinner(i, mode){				
+	if(!i.length) return;				
+	if(mode == 'in') i.removeClass('ms_hide');
+	else {
+        setTimeout(function(){
+            $(i).addClass('ms_hide');
+        },700)
+	}
+}
+
+/**
+ * Append processwire version index to selected items.
+ *
+ * Called when action is to download processwire versions of selected items.
+ *
+ * @param Objected selectedItems Selected items to action.
+ *
+ */
+function setVersionsIndexes(form, selectedItems) {
+    var versionIndexes = '';
+    selectedItems.each(function () {
+        var p = ($(this)).parent();
+        var version = p.attr('data-version-index');
+        versionIndexes += '<input name="ms_processwire_version_index[]" type="hidden" value="'+version+'">';
+    });
+    form.append(versionIndexes);
+}
+
+/**
+ * Helper function to store selector string values.
+ *
+ * Used in conjunction with setInputs().
+ * 
+ * @return object siteFields Object with selector values.
+ *
+ */
+function getsiteFields() {
+    
+    var siteFields = {};
+    
+    siteFields = {
+        // sections: div class
+        allSections: '.ms_section',
+
+        // individual sections: div IDs
+        siteSection: '#ms_site_section',
+        databaseSection: '#ms_database_section',
+        superUserSection: '#ms_superuser_section',
+        filePermissionSection: '#ms_file_permissions_section',
+        
+        // headers: div class
+        allHeaders: '.ms_setting_header',
+
+        // sub-section wrappers: div IDs
+        title: '#ms_site_title_wrapper',// site title
+        desc: '#ms_site_description_wrapper',// description
+        siteType: '#ms_create_site_type_wrapper',// single vs multi-site radio select
+        createMethod: '#ms_create_method_wrapper',// how site being created
+        siteDir: '#ms_site_directory_wrapper',// multi-site install directory
+        installDir: '#ms_site_install_directory_wrapper',// single-site install directory
+        pwVersion: '#ms_create_pw_version_select_wrapper',// saved values (JSON) to create site
+        httpHostNames: '#ms_http_host_names_wrapper',// cannot copy paste since need to separate by line
+        typePaste: '#ms_create_copy_paste_wrapper',// type/paste key=value, pairs to create site
+        savedConfigs: '#ms_create_json_configs_wrapper',// saved values (JSON) to create site
+        profiles: '#ms_installation_profile_wrapper',
+        
+        // radios: input names
+        siteTypeRadio: 'input:radio[name="ms_create_site_type"]', 
+        createMethodRadio: 'input:radio[name="ms_create_method"]',
+
+        // configurable inputs wrappers:  div classe (@note: these are the values that can be saved as JSON)
+        configurableInputs: '.ms_configurable',
+    };
+
+    return siteFields;
+
+}
+
+/**
+ * Dynamically hide/show site creation inputs depending on creation method.
+ * 
+ * @param integer siteTypeValue Whether creating a single versus multi-site
+ * @param integer createMethodValue Denotes site creation method (form, copy-paste or saved configs)
+ *
+ */
+function setInputs(siteTypeValue, createMethodValue) {
+
+    var siteFields = getsiteFields();
+
+    var allSections = siteFields.allSections + ':not(' + siteFields.siteSection + ')';
+    var filePermissionSection = siteFields.filePermissionSection;
+    
+    var allHeadersExceptions = '';
+    allHeadersExceptions += siteFields.title + ',';
+    allHeadersExceptions += siteFields.desc + ',';
+    allHeadersExceptions += siteFields.siteType + ',';
+    allHeadersExceptions += siteFields.profiles + ',';
+    allHeadersExceptions += siteFields.httpHostNames + ',';
+    allHeadersExceptions += siteFields.createMethod;
+    
+    var allHeaders = siteFields.allHeaders + ':not(' + allHeadersExceptions + ')';
+    
+    var siteDir = siteFields.siteDir;
+    var installDir = siteFields.installDir;
+    var pwVersion = siteFields.pwVersion;
+    var typePaste = siteFields.typePaste;
+    var savedConfigs = siteFields.savedConfigs;
+    var profiles = siteFields.profiles;
+
+    var configurableInputs = siteFields.configurableInputs;    
+    
+    var siteType;
+    // creating from form
+    if (createMethodValue == 1) {
+        $(allSections + ',' + allHeaders).removeClass('ms_hide');
+        if (siteTypeValue == 1) siteType = siteDir;
+        else if (siteTypeValue == 2) siteType = installDir + ',' + pwVersion;
+        $(siteType + ',' + typePaste + ',' + savedConfigs).addClass('ms_hide');
+    }
+    // creating from type or paste
+    else if (createMethodValue == 2) {
+        $(allSections + ',' + allHeaders).not(profiles).addClass('ms_hide');    
+        if (siteTypeValue == 1) siteType = installDir + ',' + pwVersion + ',';
+        else if (siteTypeValue == 2) siteType = '';
+        $(siteType + typePaste + ',' + profiles).removeClass('ms_hide');
+    }
+    // creating from saved install configurations
+    else if (createMethodValue == 3) {
+        $(allSections + ',' + allHeaders).removeClass('ms_hide');    
+        if (siteTypeValue == 1) siteType = siteDir;
+        else if (siteTypeValue == 2) siteType = installDir + ',' + pwVersion;
+        $(siteType + ',' + typePaste + ',' + configurableInputs + ',' + filePermissionSection).addClass('ms_hide');
+    }
+
+
+}
+
+
 /*************************************************************/
 // READY
 
 $(document).ready(function () {
 
     // highlight required inputs
-    var i = $('div#ms_settings input,div#ms_settings email,div#ms_settings password,div#ms_settings select,div#ms_profile_upload input').not('input#ms_upload_profile_file');
+    var i = $('div.ms_form_wrapper input,div.ms_form_wrapper email,div.ms_form_wrapper password,div.ms_form_wrapper select, textarea#ms_create_copy_paste, div#ms_profile_upload input').not('input#ms_upload_profile_file');
     requiredBackgroundColor(i);
     
     // @todo:?! Not using this for now. From original PW install for showing profile screenshot
@@ -410,20 +576,34 @@ $(document).ready(function () {
         else $('div.InputfieldContent input:checkbox[name="ms_items_action_selected[]"]').prop('checked', false);
     });
 
+    // set inputs dynamically as required RE site creation and method types
+    var siteFields = getsiteFields();
+    var siteTypeRadio = siteFields.siteTypeRadio;
+    var createMethodRadio = siteFields.createMethodRadio;
+    var siteTypeCreateRadios = siteTypeRadio + ',' + createMethodRadio;
+    
+    $('div#content').on('change', siteTypeCreateRadios, function () {
+        var siteTypeValue = $(siteTypeRadio).filter(":checked").val();// jQuery object
+        var createMethodValue = $(createMethodRadio).filter(":checked").val();// jQuery object
+        setInputs(siteTypeValue, createMethodValue);
+    });   
+
     // pagination limit change
     // @note: workaround for PW issue #784 (GitHub)
     $('select#limit').change(function () { $(this).closest('form').submit(); });
     
     // force parent page refresh on modal close
-    $('a.ms_edit_profile').on('pw-modal-closed', function(evt, ui) {
+    $('a.ms_edit_profile, a.ms_edit_config').on('pw-modal-closed', function(evt, ui) {
 		window.location.reload(true);
     });
     
-    // CREATE SITE FORM VALIDATION
+    // variables for forms validation
     var confirm = $('input#ms_confirm');
     var popupData = $('span#ms_popup_data');
     var noItemsPopupData = $('span#ms_no_items_popup_data');
+    var noActionPopupData = $('span#ms_no_action_popup_data');
 
+    // CREATE SITE FORM VALIDATION
     $('form#ms_create_form').submit(function (e) {
         var form = $(this);
         if (0 == confirm.val()) {// @todo:? this not really needed        
@@ -445,9 +625,11 @@ $(document).ready(function () {
             }
     
             // submit form
-            else {
+            else {                
                 confirm.val(1);
                 $('button#ms_create_btn').click();
+                var i = $('span#ms_spinner i');
+                spinner(i, mode = 'in');
             }
         
         }
@@ -521,12 +703,73 @@ $(document).ready(function () {
 
     })
 
-    // no items selected on click
-    $(document).on('click', 'button.ms_btn, button#ms_ms_installed_btn_copy', function (e) {
+    // ADD CONFIG FORM VALIDATION
+    $('form#ms_config_add_form').submit(function (e) {        
+        var form = $(this);
+        if (0 == confirm.val()) {// @todo:? this not really needed        
+            var valid = {};            
+            // for popup
+            var popupErrorsList = $('ol#ms_validation_errors');
+            popupErrorsList.children().remove();    
+            //+++++++++++++++++++++++++++++++++++++++++++++
+            valid = validateForm(form);// returns object
+
+            if (1 == valid.errors) {
+                e.preventDefault(); 
+                notices = valid.notices;
+                $.each(notices, function (index, popupMessage) {
+                    popupErrorsList.append('<li>' + popupMessage + '</li>');
+                });
+    
+                initPopup(popupData);
+            }
+    
+            // submit form
+            else {                
+                confirm.val(1);
+                $('button#ms_create_btn').click();
+                var i = $('span#ms_spinner i');
+                spinner(i, mode = 'in');
+            }
+        
+        }
+
+    })
+
+    // PROCESSWIRE VERSIONS FORM
+    $('div#ms_top_action_selects select#ms_items_action_select').change(function () {
+        var v = $(this).val();
+        if ('download' == v) $('p#ms_download_warning').fadeIn('fast').removeClass('ms_hide');
+        else $('p#ms_download_warning').fadeOut('fast').addClass('ms_hide');
+    });
+
+    $('form#ms_processwire_versions_form').submit(function (e) {
+        var form = $(this);
+        var s = $('select#ms_items_action_select');
+        var action = s.val();
+        // check if items selected
         var selectedItems = getSelectedItems();
+        // if downloading, append version indexes to form
+        if (action == 'download') {
+            var i = $('span#ms_spinner i');
+            spinner(i, mode='in');     
+            setVersionsIndexes(form, selectedItems)
+        }
+        
+    })
+
+    // no items selected on click
+    $(document).on('click', 'button.ms_bulk_action_btn', function (e) {
+        var selectedItems = getSelectedItems();
+        var actionsSelect = $('select#ms_items_action_select');
         if (!selectedItems.length) {
             e.preventDefault();
             initPopup(noItemsPopupData);
+        }
+
+        else if ( 'select' == actionsSelect.val() ) {
+            e.preventDefault();
+            initPopup(noActionPopupData);
         }
     });
     

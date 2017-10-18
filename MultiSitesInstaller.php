@@ -9,7 +9,7 @@
 * If the above already exist (i.e., same names); this installer aborts wholesale.
 *
 * @author Francis Otieno (Kongondo)
-* @version 0.0.1
+* @version 0.0.2
 *
 * This is a Free Module.
 *
@@ -56,7 +56,7 @@ class MultiSitesInstaller extends ProcessMultiSites {
 		$fieldsExist = count($fieldsCheck) ? true : false;
 
 		// check if required templates already exist
-		$templates = array('site_profiles' => 'multi-sites-site-profiles', 'site_profile' => 'multi-sites-site-profile', 'installed_sites' => 'multi-sites-installed-sites', 'installed_site' => 'multi-sites-installed-site');
+		$templates = array('site_profiles' => 'multi-sites-site-profiles', 'site_profile' => 'multi-sites-site-profile', 'installed_sites' => 'multi-sites-installed-sites', 'installed_site' => 'multi-sites-installed-site','wire_files' => 'multi-sites-wires', 'wire_file' => 'multi-sites-wire','install_configurations' => 'multi-sites-install-configurations', 'install_configuration' => 'multi-sites-install-configuration');
 		$templatesCheck = array();
 		foreach ($templates as $template) {if($this->wire('templates')->get($template)) $templatesCheck[] = $this->wire('templates')->get($template)->name;}
 		$templatesExist = count($templatesCheck) ? true : false;
@@ -203,10 +203,20 @@ class MultiSitesInstaller extends ProcessMultiSites {
 
 		// array for creating new templates: $k=template name; $v=template properties + fields
 		$templates = array(
+			// profiles
 			'multi-sites-site-profiles' => array('Multi Sites: Profiles', 1, '', 1, 'fields' => array($title)),
 			'multi-sites-site-profile' => array('Multi Sites: Profile', 1, 1, '', 'fields' => array($title, $settings, $files)),		
+			// install sites
 			'multi-sites-installed-sites' => array('Multi Sites: Installed Sites', 1, '', 1, 'fields' => array($title)),
 			'multi-sites-installed-site' => array('Multi Sites: Installed Site', 1, 1, '', 'fields' => array($title, $settings)),
+
+			// wire files
+			'multi-sites-wires' => array('Multi Sites: ProcessWire Files', 1, '', 1, 'fields' => array($title)),
+			'multi-sites-wire' => array('Multi Sites: ProcessWire File', 1, 1, '', 'fields' => array($title, $files)),
+
+			// install configs
+			'multi-sites-install-configurations' => array('Multi Sites: Install Configurations', 1, '', 1, 'fields' => array($title)),
+			'multi-sites-install-configuration' => array('Multi Sites: Install Configuration', 1, 1, '', 'fields' => array($title, $settings)),
 
 		);
 
@@ -259,7 +269,7 @@ class MultiSitesInstaller extends ProcessMultiSites {
 		// prepare arrays for some templates' childTemplates AND parentTemplates
 
 		// childTemplates: key = template name; value = allowed child templates
-		$childTemplates = array('multi-sites-site-profiles' => 'multi-sites-site-profile','multi-sites-installed-sites' => 'multi-sites-installed-site',);
+		$childTemplates = array('multi-sites-site-profiles' => 'multi-sites-site-profile','multi-sites-installed-sites' => 'multi-sites-installed-site','multi-sites-wires' => 'multi-sites-wire','multi-sites-install-configurations' => 'multi-sites-install-configuration');
 
 		// add allowed child templates
 		foreach ($childTemplates as $templateName => $childTemplateName) {
@@ -268,7 +278,7 @@ class MultiSitesInstaller extends ProcessMultiSites {
 			$t->save();// save the template
 		}
 		// parentTemplates: key = template name; value = allowed parent templates
-		$parentTemplates = array('multi-sites-site-profile' => 'multi-sites-site-profiles','multi-sites-installed-site' => 'multi-sites-installed-sites','multi-sites-site-profiles' => 'admin','multi-sites-installed-sites' => 'admin');
+		$parentTemplates = array('multi-sites-site-profile' => 'multi-sites-site-profiles','multi-sites-installed-site' => 'multi-sites-installed-sites','multi-sites-wire' => 'multi-sites-wires','multi-sites-install-configuration' => 'multi-sites-install-configurations','multi-sites-site-profiles' => 'admin','multi-sites-installed-sites' => 'admin','multi-sites-wires' => 'admin','multi-sites-install-configurations' => 'admin');
 
 		// add allowed parent templates
 		foreach ($parentTemplates as $templateName => $parentTemplateName) {
@@ -296,6 +306,8 @@ class MultiSitesInstaller extends ProcessMultiSites {
 		$multiSitesPages = array(
 			'multi-sites-site-profiles' =>  'Multi Sites: Profiles',
 			'multi-sites-installed-sites' =>  'Multi Sites: Installed Sites',
+			'multi-sites-wires' =>  'Multi Sites: ProcessWire Files',
+			'multi-sites-install-configurations' =>  'Multi Sites: Install Configurations',
 		);
 
 		// create the child pages of 'Multi Sites': These will be the parent pages of 'MS Profile' and 'MS Site' pages
