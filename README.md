@@ -79,9 +79,7 @@ Using the form method, you complete a full form, inputting values required to in
 #### Type or Paste
 This method allows you to type or copy and paste in most of the required form values as **key=value** properties. Some values need to be input in the form directly, for instance, installation profile and ProcessWire version (for single sites). Below is the list of property names that require values. Note that a key and its property are separated using an equals sign (**=**), and key/value pairs are separated using a comma (**,**).
 
-**Required properties in Type or Paste**
-
-**Note that all key names are case-sensitive**.
+*Required properties in Type or Paste* (Note that all key names are case-sensitive.)
 
 1.	site
 2.	hostDomain
@@ -101,7 +99,7 @@ This method allows you to type or copy and paste in most of the required form va
 16.	chmodDir
 17.	chmodFile
 
-**Key explanations**
+*Key explanations*
 
 
 1.	**site**: *For multi-sites only*. The name to give to your site directory. Enter as *name* only. The *name* will be auto-appended to the *site* directory for the multi-site on install. For instance, *site-sports* if the supplied name here is *sports*.
@@ -123,7 +121,7 @@ This method allows you to type or copy and paste in most of the required form va
 17.	**chmodFile**: Default file permissions for the site being installed, e.g. *644*.
 
 
-**Example key=value pairs**
+*Example key=value pairs*
 
 >site=animals,hostDomain=mydomain.com,admin=crabs,colour=blue,theme=AdminThemeReno,timezone=Asia/Bahrain,dbName=some_database_name_db,dbUser=root,dbPass=veryXStrong55DBPassWord,dbHost=localhost,dbPort=3306,user=morpheus,pass=secretStrongPassword123456M,passConfirm=secretStrongPassword123456M,email=morpheus@trixma,chmodDir=755,chmodFile=644
 
