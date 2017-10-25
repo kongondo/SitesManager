@@ -156,7 +156,7 @@ Use this method to create a site using a pre-defined install configuration that 
 ## Resources
 
 * [Support Forum](https://processwire.com/talk/topic/17372-sites-manager-processsitesmanager/)
-* Video [Beta Release demo](https://youtu.be/5jTPBH7gNQ8).
+* Video [Beta Release demo](https://youtu.be/NxFOqAF5XS8).
 
 ## License
 MPL2
@@ -164,7 +164,7 @@ MPL2
 ## Changelog
 
 #### Version 0.0.3
-1. Changed name to Sites Manager (formely Multi Sites).
+1. Changed name to Sites Manager (formerly Multi Sites).
 2. Fixed bugs in Type or Paste method (key=value pairs must now be separated by new line).
 3. Beta release.
 
