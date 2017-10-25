@@ -143,7 +143,7 @@ chmodFile=644
 
 *Known issues*
 
-Currently, values that contain single quotes/apostrophes (**'**) are not supported. Don't use this character. You can edit your setting later after your site is installed from within ProcessWire itself if necessary.
+Currently, **values** that contain single quotes/apostrophes (**'**) are not supported. **Don't use this character**. You can edit your setting later after your site is installed from within ProcessWire itself if necessary.
 
 #### Install Configuration
 Use this method to create a site using a pre-defined install configuration that you created using the **Config** dashboard. Select the radio labelled *Saved Values* to use this method. **Note that passwords and dynamic values bound to change across sites are not saved in an install configuration**. For instance, host and domain information, admin login, database name, etc.
