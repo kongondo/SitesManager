@@ -1,9 +1,9 @@
 <?php
 
 /**
-* Multi Sites: Process
+* Sites Manager: Process
 *
-* This file forms part of the Multi Sites Suite.
+* This file forms part of the Sites Manager Suite.
 * Enables the creation of new site installations for use in both single and multi-sites setup.
 * Sites are installed using a specified site profile.
 * Site profiles are uploaded to and managed by the module.
@@ -11,7 +11,7 @@
 * Installed site domain must be active prior to its installation!
 * Multiple ways to install sites
 *
-* Uses:
+* Usage:
 *	- site development: temporary sites, testing configurations, etc.
 *	- production (multi-sites and standalone sites) environment.
 *
@@ -20,7 +20,7 @@
 * This is a Free Module.
 * Some code lifted from the official ProcessWire installer (install.php).
 *
-* ProcessMultiSites for ProcessWire
+* ProcessSitesManager for ProcessWire
 * Copyright (C) 2017 by Francis Otieno
 * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
 *
@@ -29,7 +29,7 @@
 // @todo: do we need this?
 #define("PROCESSWIRE_INSTALL", 2.7);
 
-class ProcessMultiSites extends Process implements Module, ConfigurableModule {
+class ProcessSitesManager extends Process implements Module, ConfigurableModule {
 
 	/**
 	 * Return information about this module (required).
@@ -41,19 +41,19 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	public static function getModuleInfo() {
 		
 		return array(
-			'title' => 'Multi Sites (Process)',
+			'title' => 'Sites Manager (Process)',
 			'author' => 'Francis Otieno (Kongondo)',
-			'version' => 2,
-			'href' => 'http://multisites.kongondo.com',
+			'version' => 3,
+			'href' => 'http://sitesmanager.kongondo.com',
 			'summary' => 'Sites installer and manager for both multi-sites and single-sites setups.',
 			'singular' => true,
 			'autoload' => false,
-			'permission' => 'multi-sites',
+			'permission' => 'sites-manager',
 		);
 	
 	}
 		
-	const PAGE_NAME = 'multi-sites';// this process' name
+	const PAGE_NAME = 'sites-manager';// this process' name
 
 	/**
 	 * Whether or not we force installed files to be copied. 
@@ -159,7 +159,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 * For checking if cleanup has been deployed.
 	 *
 	 */
-	protected $multisitesFullyInstalled;
+	protected $sitesmanagerFullyInstalled;
 	
 	/**
 	 * string name of the cookie used to save limit of items to show per page in various dashboards.
@@ -210,16 +210,16 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 		// @todo: needed?
 		foreach(self::configDefaults() as $key => $value) {$this->$key = $value;}
 		
-		$this->multisitesFullyInstalled = true;
+		$this->sitesmanagerFullyInstalled = true;
 		
 		$config = $this->wire('config');
 		$input = $this->wire('input');
 
 		// include helper classes
 		$dir = dirname(__FILE__);
-		require_once("$dir/MultiSitesRender.php");
-		require_once("$dir/MultiSitesUtilities.php");
-		require_once("$dir/MultiSitesActions.php");
+		require_once("$dir/SitesManagerRender.php");
+		require_once("$dir/SitesManagerUtilities.php");
+		require_once("$dir/SitesManagerActions.php");
 
 		/******** - BUILD NOTICES ARRAY - *******/
         $this->notices['messages'] = array();
@@ -228,18 +228,18 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 
 		/******** - TEMP WORKING DIRECTORIES - *******/
 
-		$path = $config->paths->assets . 'MultiSites/';
+		$path = $config->paths->assets . 'SitesManager/';
 
 		// private temp uploads directory
-		$this->privateTempUploadsDir = $path . '.multi_sites_uploads/';// @note: set as system path
+		$this->privateTempUploadsDir = $path . '.sites_manager_uploads/';// @note: set as system path
 		// create the directory if it doesn't exist
 		if(!is_dir($this->privateTempUploadsDir)) wireMkdir($this->privateTempUploadsDir, true);
 		// private temp sites directory
-		$this->privateTempSitesDir = $path . '.multi_sites/';
+		$this->privateTempSitesDir = $path . '.sites_manager/';
 		if(!is_dir($this->privateTempSitesDir)) wireMkdir($this->privateTempSitesDir, true);// @note: set as system path
 
 		// cookie per user and per relevant items dashboard
-		$this->cookieLimitName = $this->wire('user')->id . '-processMultiSites-limit-' . $this->wire('input')->urlSegment1;
+		$this->cookieLimitName = $this->wire('user')->id . '-processSitesManager-limit-' . $this->wire('input')->urlSegment1;
 		// default number of items to show per respective dashboard if no custom limit set (via post/session cookie).
 		$this->showLimit = 10;
 
@@ -255,12 +255,12 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 */
 	public function init() {
 
-		// @access-control: multi sites
-		/* if ($this->permissions->get('multi-sites')->id && !$this->user->hasPermission('multi-sites'))
-				throw new WirePermissionException($this->_('Multi Sites: You have no permission to use this module.')); */
+		// @access-control: sites manager
+		/* if ($this->permissions->get('sites-manager')->id && !$this->user->hasPermission('sites-manager'))
+				throw new WirePermissionException($this->_('Sites Manager: You have no permission to use this module.')); */
 		// only superusers!
 		if ( !$this->wire('user')->isSuperuser() )
-		throw new WirePermissionException($this->_('Multi Sites: You have no permission to use this module.'));
+		throw new WirePermissionException($this->_('Sites Manager: You have no permission to use this module.'));
 
 		parent::init();
 
@@ -272,29 +272,29 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 		$ui->use('modal');
 		$modules->get('JqueryMagnific');
 
-		// Get the module config data to check if Multi Sites components are available
+		// Get the module config data to check if Sites Manager components are available
 		$data = $this->getDefaultSettings();
-		// if multisitesFullyInstalled == 0, we show error
-		if(isset($data['multisitesFullyInstalled']) && $data['multisitesFullyInstalled'] == 0) $this->multisitesFullyInstalled = false;
+		// if sitesmanagerFullyInstalled == 0, we show error
+		if(isset($data['sitesmanagerFullyInstalled']) && $data['sitesmanagerFullyInstalled'] == 0) $this->sitesmanagerFullyInstalled = false;
 		
-		$this->msRender = new MultiSitesRender();
-		$this->msUtilities = new MultiSitesUtilities();
+		$this->smRender = new SitesManagerRender();
+		$this->smUtilities = new SitesManagerUtilities();
 
 		$config = $this->wire('config');
 		$url = $config->urls->$this;
 
 		// get sanitised url segments
-		$urlSegments = $this->msUtilities->getURLSegments();
+		$urlSegments = $this->smUtilities->getURLSegments();
 		$this->urlSeg1 = $urlSeg1 =  $urlSegments[0];
 		$this->urlSeg2 = $urlSeg2 =  (int) $urlSegments[1];// ID of site profile page being edited
 
 		$session = $this->wire('session');
 		$url = $this->wire('page')->url;
-		if(!$this->multisitesFullyInstalled && $this->urlSeg1 && strpos($url, 'multi-sites')) $session->redirect($url);
+		if(!$this->sitesmanagerFullyInstalled && $this->urlSeg1 && strpos($url, 'sites-manager')) $session->redirect($url);
 
-		$this->notices = $this->msUtilities->requiredModuleFilesCheck($this->notices);
-		if(count($this->notices['errors']) && $this->multisitesFullyInstalled){
-			$this->msUtilities->runNotices($this->notices['errors'], 2);
+		$this->notices = $this->smUtilities->requiredModuleFilesCheck($this->notices);
+		if(count($this->notices['errors']) && $this->sitesmanagerFullyInstalled){
+			$this->smUtilities->runNotices($this->notices['errors'], 2);
 			// @note: only needs to run in this module's page
 			throw new WirePermissionException($this->_("Required modules files missing. Please check that you have the files 'sites.json' and 'index.config.php' in your ProcessWire root folder."));
 		}
@@ -305,12 +305,12 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 * 	Default module configuration values.
 	 *
 	 * @access public
-	 * @return array Array with value to denote whether multi sites is fully installed.
+	 * @return array Array with value to denote whether sites manager is fully installed.
 	 *
 	 */
 	public static function configDefaults () {
-		// boolean 0=false {new install}; 1=true {Multi Sites fully installed - i.e. including site files and pages}
-		return array('multisitesFullyInstalled' => 0);
+		// boolean 0=false {new install}; 1=true {Sites Manager fully installed - i.e. including site files and pages}
+		return array('sitesmanagerFullyInstalled' => 0);
 	}
 
 	/**
@@ -331,11 +331,11 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 		$m = new InputfieldMarkup;
 		$m->label = __('Uninstall Warning');
 
-		$cleanupURL = '<a target="_blank" href="' . wire('config')->urls->admin . 'multi-sites/cleanup/">' . __('Cleanup utility') . '</a>';
+		$cleanupURL = '<a target="_blank" href="' . wire('config')->urls->admin . 'sites-manager/cleanup/">' . __('Cleanup utility') . '</a>';
 
 		$warning = '<h3 class="warning notes">';
-		$warning .= sprintf(__('Do not uninstall Multi Sites until AFTER you have run the %s'), $cleanupURL);
-		$warning .= ' ' . __(' unless you only want to keep your Multi Sites Pages without using the module.');
+		$warning .= sprintf(__('Do not uninstall Sites Manager until AFTER you have run the %s'), $cleanupURL);
+		$warning .= ' ' . __(' unless you only want to keep your Sites Manager Pages without using the module.');
 		$warning .= '</h3>';
 
 		$m->attr('value', $warning);
@@ -367,14 +367,14 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	public function execute() {
 
 		// cleanup was deployed, show different page
-		if(!$this->multisitesFullyInstalled) return $this->msRender->renderMultiSitesComponentsMissing();
+		if(!$this->sitesmanagerFullyInstalled) return $this->smRender->renderSitesManagerComponentsMissing();
 
 		if(self::TEST_MODE) {
 			error_reporting(E_ALL | E_STRICT);
 			ini_set('display_errors', 1);
 		}
 
-		$out = $this->msRender->renderSitesInstalled();
+		$out = $this->smRender->renderSitesInstalled();
 		return $out;
 
 	}
@@ -387,7 +387,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 *
 	 */
 	public function executeCreate() {
-		$out = $this->msRender->renderSitesCreate();
+		$out = $this->smRender->renderSitesCreate();
 		return $out;
 	}
 
@@ -399,7 +399,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 *
 	 */
 	 public function executeProfiles() {
-		$out = $this->msRender->renderSitesProfiles();
+		$out = $this->smRender->renderSitesProfiles();
 		return $out;
 	}
 
@@ -411,7 +411,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 *
 	 */
 	public function executeUpload() {
-		$out = $this->msRender->renderSitesProfilesUpload();
+		$out = $this->smRender->renderSitesProfilesUpload();
 		return $out;
 	}
 	
@@ -423,7 +423,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 *
 	 */
 	public function executeConfigs() {
-		$out = $this->msRender->renderSitesConfigs();
+		$out = $this->smRender->renderSitesConfigs();
 		return $out;
 	}
 
@@ -435,7 +435,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 *
 	 */
 	public function executeConfig() {
-		$out = $this->msRender->renderSitesConfigsAdd();
+		$out = $this->smRender->renderSitesConfigsAdd();
 		return $out;
 	}
 
@@ -449,7 +449,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 *
 	 */
 	public function executeWire() {
-		$out = $this->msRender->renderProcessWireVersions();
+		$out = $this->smRender->renderProcessWireVersions();
 		return $out;
 	}
 
@@ -461,7 +461,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 *
 	 */
 	 public function executeCleanup() {
-		$out = $this->msRender->renderSitesCleanup();
+		$out = $this->smRender->renderSitesCleanup();
 		return $out;
 	}
 
@@ -492,7 +492,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	/* ######################### - INSTALLERS - ######################### */
 
 	/**
-	 * Calls Multi Sites installer.
+	 * Calls Sites Manager installer.
 	 *
 	 * Used by this module's installer.
 	 * Called only once during module install.
@@ -501,10 +501,10 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 * @param null|integer $mode Whether to verify if install possible (null) or commence install (1).
 	 * @return void
 	 */
-	private function msInstaller($mode) {		
-		require_once(dirname(__FILE__) . '/MultiSitesInstaller.php');
-		$msi = new MultiSitesInstaller();
-		return $msi->verifyInstall($mode);
+	private function smInstaller($mode) {		
+		require_once(dirname(__FILE__) . '/SitesManagerInstaller.php');
+		$smi = new SitesManagerInstaller();
+		return $smi->verifyInstall($mode);
 	}		
 
 	/**
@@ -518,30 +518,30 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 	 */
 	public function ___install() {		
 		
-		// create ProcessMultiSiteso admin page and permission if MultiSitesInstaller was successful in its validation
-		if($this->msInstaller($mode = null) == true) {
+		// create ProcessSitesManagero admin page and permission if SitesManagerInstaller was successful in its validation
+		if($this->smInstaller($mode = null) == true) {
 			$page = new Page();
 			$page->template = 'admin';
 			$page->parent = $this->wire('pages')->get($this->wire('config')->adminRootPageID);
-			$page->title = 'Multi Sites';
+			$page->title = 'Sites Manager';
 			$page->name = self::PAGE_NAME;
 			$page->process = $this;
 			#$page->addStatus(Page::statusHidden);
 			$page->save();
 
-			$this->msInstaller($mode = 1);// run MultiSitesInstaller
+			$this->smInstaller($mode = 1);// run SitesManagerInstaller
 
 			// tell the user we created this page
-			$message = $this->_('Multi Sites: Created page');
+			$message = $this->_('Sites Manager: Created page');
 			$message .= ' ' . $page->path;
 			$this->message($message);
 
 		}
 
-		else throw new WireException($this->_('Multi Sites: Installation aborted. Check and fix reported errors first.'));
+		else throw new WireException($this->_('Sites Manager: Installation aborted. Check and fix reported errors first.'));
 
-		// create the permission 'multi-sites' to limit access to the module @note: currently, only superusers
-		$perms = array('multi-sites' => $this->_('Use Multi Sites'));
+		// create the permission 'sites-manager' to limit access to the module @note: currently, only superusers
+		$perms = array('sites-manager' => $this->_('Use Sites Manager'));
 
 		foreach ($perms as $k => $v) {
 			$permission = $this->wire('permissions')->get($k);
@@ -554,7 +554,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 		}
 
 		// tell the user we created this module's permissions
-		$message = $this->_('Multi Sites: Created new permission multi-sites.');
+		$message = $this->_('Sites Manager: Created new permission sites-manager.');
 		$this->message($message);
 
 	}
@@ -578,14 +578,14 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 
 		if($page->id) {
 			// if we found the page, let the user know and delete it
-			$message = $this->_('Multi Sites: Deleted page');
+			$message = $this->_('Sites Manager: Deleted page');
 			$message .= ' ' . $page->path;
 			$this->message($message);
 			$this->wire('pages')->delete($page);
 		}
 
-		// find and delete the 'multi-sites'permission and let the user know
-		$perms = array('multi-sites');
+		// find and delete the 'sites-manager'permission and let the user know
+		$perms = array('sites-manager');
 
 		foreach ($perms as $perm) {
 			$permission = $this->permissions->get($perm);
@@ -595,7 +595,7 @@ class ProcessMultiSites extends Process implements Module, ConfigurableModule {
 		}
 
 		// tell the user we created this module's permission
-		$message = $this->_('Multi Sites: Deleted permission multi-sites.');
+		$message = $this->_('Sites Manager: Deleted permission sites-manager.');
 		$this->message($message);
 		
 

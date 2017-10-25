@@ -1,0 +1,210 @@
+/**
+*
+* CSS styles for the ProcessWire Module Sites Manager (Process)
+*
+* @author Francis Otieno (Kongondo)
+*
+* Copyright (C) 2017 by Francis Otieno
+*
+*/
+
+/** divs **/
+div#sm_menu {margin-bottom: 2em;}
+div.sm_form_wrapper{border: 1px solid #d9e1ea; padding: 1em; height:auto;}
+
+div#sm_menu:after, div#sm_create_form_inputs_wrapper:after, div#sm_create_single_site_wrapper:after, div#content form:after {
+    content:'';
+    display:block;
+    clear: both;
+}
+div.sm_setting_header {border-bottom: 1px dotted #d9e1ea; }
+div.sm_setting {float: left; padding: 0 1em;  min-height: 65px;}
+div.sm_setting:first-child {width: 35%;}
+div.sm_setting:last-child {width: 65%; margin-top: 2.5em;}
+div.sm_section, div.sm_setting_header {width: 100%; clear:left;}
+div.sm_section, div.sm_cleanup_header {background-color: #E8E8E8; padding: 0.25em 1em;}
+div#sm_cleanup_warning, div#sm_notice {background-color: #000; color: #FFF; padding: 1px 7px; margin-bottom: 2em; border-radius: 3px;}
+div#sm_create_form_inputs_wrapper div#sm_notice {margin-bottom: 1em;}
+div#sm_spinner_wrapper {width: 100%; height: 20px; text-align: center; margin: 0 0 1em 0; position: absolute; top:0; color: red;}
+
+div.sm_installed_sites, div.sm_profiles, div.sm_configs, div.sm_processwire_versions {
+	/* overflow: hidden; */
+    margin-top: 1em;
+    padding: 0 0 1em 0;
+    border-bottom: 1px dotted rgba(0,0,0,0.20);
+}
+
+div.sm_form_wrapper,
+div.sm_profiles,
+div.sm_installed_sites,
+div.sm_configs,
+div.sm_processwire_versions,
+div#sm_config_add_form_inputs_wrapper {
+	position: relative
+}
+
+div#sm_top_strip_actions {
+    margin-bottom: 1em;
+    height: 50px;
+    border-bottom: 1px dotted rgba(0,0,0,0.20);
+}
+
+div#sm_headline_itesm_count, div#sm_headline_create_link, div#sm_top_action_selects, div#sm_top_pagination {width: 50%; float: left;}
+div#sm_headline_strip, div#sm_headline_back_link {height: 30px; margin-bottom: 2em;}
+div#sm_headline_strip {font-size: 1.125em;}
+
+
+/* div.sm_popup {background-color: #FFF; min-height: 200px; margin: 0 auto; width: 70%; } */
+div#sm_edit_profile {background-color: #FFF; margin: 0 5%; position: relative}
+div#sm_popups_close {position: absolute; top: 0; left: 0;  color: #FFF; padding: 5px 10px; margin: 0 5%; width: 90%}
+div#sm_validation, div#sm_installed_sites_action_confirm, div#sm_no_item_selected, div#sm_no_action_selected {background-color: #FFF; min-height: 200px; margin: 34px 5%;  padding: 20px;}
+div#sm_bottom_pagination {margin: 3em 0 2em 0;}
+
+/** headers **/
+div.sm_installed_sites h2,
+div.sm_profiles h2,
+div.sm_configs h2,
+div#sm_processwire_versions_wrapper h2 {
+	font-weight: bold; display: inline-block; margin-left: 1.5em;
+}
+h2#sm_validation_header,
+h2#sm_installed_sites_action_confirm_header,
+h2#sm_no_item_selected_header,
+h2#sm_no_action_selected_header {
+	font-weight: bold; font-size: 1.20em;
+}
+div.sm_section h2#sm_installed_sites_action_confirm_header {margin: 0.25em 0;}
+div#sm_config_add_form_inputs_wrapperdiv.sm_section h2 {margin: 0 0 0.5em 0;}
+div#content h2:not(.sm_edit) {margin: 0;}
+
+/** label **/
+div#sm_create_form_inputs_wrapper label,
+div#sm_profile_upload label,
+div#sm_config_add_form_inputs_wrapper label,
+div#sm_create_copy_paste_wrapper label,
+div#content span.sm_radio_header {
+	display: block; margin: 0.75em 0; font-weight: bold;
+}
+div#content label.sm_radio {display: inline-block; margin-left: 0.5em; margin-right: 1em; font-weight: normal}
+div.sm_cleanup_items ol li label {margin-right: 0.5em;}
+
+
+/** inputs **/
+div#sm_create_form_inputs_wrapper .sm_required, div#sm_profile_upload .sm_required, div#sm_config_add_form_inputs_wrapper .sm_required {background-color: #fed6da;}
+div.sm_setting input,
+div.sm_setting select,
+div.sm_setting textarea,
+div#sm_profile_upload input[type=text],
+div#sm_profile_upload textarea {
+	width: 95%; margin-bottom: 1em;
+}
+div#sm_profile_upload input[type=text],div#sm_profile_upload textarea {width: 100%;}
+div#content input {padding: 0.3em 0.5em;}
+div#sm_profile_upload  input[type=file] {padding-left: 0}
+div#content input, div#content select {margin-right: 1em;}
+div.sm_cleanup_items ol li span input[type=checkbox],
+div.sm_installed_sites input[type=checkbox],
+div.sm_form_wrapper input[type=checkbox],
+div.sm_profiles input[type=checkbox],
+div.sm_configs input[type=checkbox],
+div.sm_processwire_versions input[type=checkbox],
+input#sm_toggle_all,
+div#sm_profile_upload input[type=radio],
+div.sm_form_wrapper input[type=radio] {
+    width: 20px;
+    height: 20px;
+    vertical-align: bottom;
+    padding: 0;
+    margin: 0;
+    margin-left: 0.35em;
+    position: relative;
+	top: -3px;
+}
+
+div#content input[type=radio], div#content input[type=checkbox]{vertical-align:middle;}
+div#content input[type=radio] {top: -1px;}
+div.sm_installed_sites input[type=checkbox],
+div.sm_profiles input[type=checkbox],
+div.sm_configs input[type=checkbox],
+div.sm_processwire_versions input[type=checkbox]{
+	top: -2px;
+}
+
+/** button **/
+div#content button {margin: 0 0 1em 0;}
+
+/** paragraph **/
+div.sm_section p.sm_section_notes, div#sm_notice p, p.sm_setting_notes {margin: 0;}
+div#sm_notice p {padding: 0.5em;}
+div#sm_installed_sites_action_confirm p.sm_confirm_list {margin-top: 1em; font-weight: bold; }
+div.mfp-content p.sm_error {margin-top: 1em;}
+p#sm_itesm_count {margin-top: 0 }
+
+/** span **/
+div.sm_cleanup_items ol li span {float: right;}
+div.sm_installed_sites span,
+div.sm_profiles span,
+div.sm_configs span,
+div.sm_processwire_versions span {
+	display: block; font-style: italic; font-size: 0.95em;
+}
+div#sm_popups_close span.mfp-close {font-weight: bold; cursor: pointer; color: #FFF; margin-top: -5px;}
+span.sm_spinner {display: inline-block; text-align: center; z-index: 1000;}
+span.sm_spinner  i.sm_spinner {font-size: 60px !important;}
+span#sm_create_link {float:right}
+span.sm_red {color: red;}
+
+/** small **/
+div.sm_form_wrapper small {font-weight: normal;}
+div#content small.sm_locked {
+	color:#FFF;
+	font-size: 80%;
+	margin-left: 0.75em;
+	background: rgb(0, 0, 0);
+	border-radius: 3px;
+	padding: 0 0.25em;
+}
+
+/** list **/
+ul.sm_menu {
+	width:100%;
+	padding:0;
+	margin:0 0 0 0.5em;
+	list-style-type:none;
+}
+
+ul.sm_menu li {display: table-cell; width: 16.6666666%;  /* (100 / numItems)% */ text-align: center;}
+li.Inputfield_sm_filter_settings_save_btn,
+li.Inputfield_sm_filter_settings_save_view_btn,
+li.Inputfield_sm_filter_profiles_go_btn,
+li.Inputfield_sm_edit_filter_config_btn  {
+	display: inline-block !important;
+}
+ul.sm_menu > li {display:inline;}
+
+ol#sm_validation_errors, ol#sm_installed_sites_delete_files_confirm_list, ol#sm_installed_sites_delete_databases_confirm_list {margin-top: 1em;}
+ol#sm_validation_errors li,
+ol#sm_installed_sites_delete_files_confirm_list li,
+ol#sm_installed_sites_delete_databases_confirm_list li{
+	display: list-item;	list-style-position: inside; list-style-type: decimal;
+}
+
+div#content ul.MarkupPagerNav {float: right; margin: 0}
+/* div#sm_bottom_pagination ul.MarkupPagerNav {margin-top: 3em;} */
+
+/** anchor **/
+a.sm_menu_item {
+	float:left;
+	width:6em;
+	text-decoration:none;
+	color:inherit;
+	padding:0.2em 0.6em;
+	font-size: 1.15em;
+	font-weight: bold;
+	margin-left: -20px;
+}
+
+a.sm_on {color: #f64704;}
+
+/** other **/
+div#content .sm_hide {display: none}

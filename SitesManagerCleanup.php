@@ -1,23 +1,23 @@
 <?php
 
 /**
-* Multi Sites: Cleanup
+* Sites Manager: Cleanup
 *
-* This file forms part of the Multi Sites Suite.
-* Utility to remove Multi sites components pre-module uninstall.
+* This file forms part of the Sites Manager Suite.
+* Utility to remove Sites Manager components pre-module uninstall.
 *
 * @author Francis Otieno (Kongondo)
-* @version 0.0.2
+* @version 0.0.3
 *
 * This is a Free Module.
 *
-* ProcessMultiSites for ProcessWire
+* ProcessSitesManager for ProcessWire
 * Copyright (C) 2017 by Francis Otieno
 * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
 *
 */
 
-class MultiSitesCleanup extends ProcessMultiSites {
+class SitesManagerCleanup extends ProcessSitesManager {
 
 	// whether to remove these files.
 	private $removeIndexConfigFile = null;
@@ -32,15 +32,15 @@ class MultiSitesCleanup extends ProcessMultiSites {
 	 * 
 	 */
 	public function cleanUp($post) {
-		$cleanupBtn = $post->ms_cleanup_btn;
-		$this->removeIndexConfigFile = (int) $post->ms_index_config;
-		$this->removeSitesJSONFile = (int) $post->ms_sites_json;
+		$cleanupBtn = $post->sm_cleanup_btn;
+		$this->removeIndexConfigFile = (int) $post->sm_index_config;
+		$this->removeSitesJSONFile = (int) $post->sm_sites_json;
 		// was the right button pressed
 		if($cleanupBtn) return $this->cleanUpPages();
 	}
 
 	/**
-	 * 	Delete multi sites pages.
+	 * 	Delete sites manager pages.
 	 *
 	 * @access private
 	 * @return method cleanUpTemplates().
@@ -49,22 +49,22 @@ class MultiSitesCleanup extends ProcessMultiSites {
 	private function cleanUpPages() {
 		$pages = $this->wire('pages');
 		// grab the two parent pages
-		$pagesTemplates = array('multi-sites-installed-sites', 'multi-sites-site-profiles', 'multi-sites-wires', 'multi-sites-install-configurations');
+		$pagesTemplates = array('sites-manager-installed-sites', 'sites-manager-site-profiles', 'sites-manager-wires', 'sites-manager-install-configurations');
 		foreach ($pagesTemplates as $templateName) {
-			$p = $pages->get('parent.name=multi-sites,template='.$templateName);
+			$p = $pages->get('parent.name=sites-manager,template='.$templateName);
 			// recursively delete the pages - i.e., including their children
 			if ($p->id) $pages->delete($p, true);
 		}
 
 		// also delete any pages that may have been left in the trash
-		foreach ($pages->find('template=multi-sites-installed-site|multi-sites-site-profile|multi-sites-wire|multi-sites-install-configuration, status>=' . Page::statusTrash) as $p) $p->delete();
+		foreach ($pages->find('template=sites-manager-installed-site|sites-manager-site-profile|sites-manager-wire|sites-manager-install-configuration, status>=' . Page::statusTrash) as $p) $p->delete();
 		
 		return $this->cleanUpTemplates();
 
 	}
 
 	/**
-	 * 	Delete multi sites templates.
+	 * 	Delete sites manager templates.
 	 *
 	 * @access private
 	 * @return method cleanUpFields().
@@ -73,7 +73,7 @@ class MultiSitesCleanup extends ProcessMultiSites {
 	private function cleanUpTemplates() {
 
 		$templates = $this->wire('templates');
-		$templatesArray = array('multi-sites-installed-sites','multi-sites-installed-site','multi-sites-site-profiles','multi-sites-site-profile','multi-sites-wires','multi-sites-wire','multi-sites-install-configurations','multi-sites-install-configuration');
+		$templatesArray = array('sites-manager-installed-sites','sites-manager-installed-site','sites-manager-site-profiles','sites-manager-site-profile','sites-manager-wires','sites-manager-wire','sites-manager-install-configurations','sites-manager-install-configuration');
 
 		// delete each found template one by one
 		foreach ($templatesArray as $tpl) {
@@ -90,7 +90,7 @@ class MultiSitesCleanup extends ProcessMultiSites {
 	}
 
 	/**
-	 * 	Delete multi sites fields.
+	 * 	Delete sites manager fields.
 	 *
 	 * @access private
 	 * @return method cleanUpFiles().
@@ -98,8 +98,8 @@ class MultiSitesCleanup extends ProcessMultiSites {
 	 */
 	private function cleanUpFields() {
 		$fields = $this->wire('fields');
-		// array of multi sites fields. We'll use this to delete each
-		$fieldsArray = array('multi_sites_files', 'multi_sites_settings');
+		// array of sites manager fields. We'll use this to delete each
+		$fieldsArray = array('sites_manager_files', 'sites_manager_settings');
 		// delete each found field
 		foreach ($fieldsArray as $fld) {
 			$f = $fields->get($fld);
@@ -109,7 +109,7 @@ class MultiSitesCleanup extends ProcessMultiSites {
 	}
 
 	/**
-	 * 	Delete multi sites files as per instructions.
+	 * 	Delete sites manager files as per instructions.
 	 *
 	 * @access private
 	 * @return method saveModuleConfigs().
@@ -142,7 +142,7 @@ class MultiSitesCleanup extends ProcessMultiSites {
 	}
 
 	/**
-	 * 	Reset ProcessMultiSites module configurations.
+	 * 	Reset ProcessSitesManager module configurations.
 	 *
 	 *	@access private
 	 *
@@ -151,22 +151,22 @@ class MultiSitesCleanup extends ProcessMultiSites {
 		
 		$modules = $this->wire('modules');
 
-		// reset to original/default state ProcessMultiSites configs!
+		// reset to original/default state ProcessSitesManager configs!
 		$reset = parent::configDefaults();
 
-		// get ProcessMultiSites class
+		// get ProcessSitesManager class
 		$pms = $modules->get(get_parent_class($this));
 
-		// save to ProcessMultiSites config data (reset)
+		// save to ProcessSitesManager config data (reset)
 		$modules->saveModuleConfigData($pms, $reset);
 
 		// true if files were deleted = only true if checkboxex were selected
 		$files = $this->deleteFiles == true ? $this->_(' Files') . ',' : '';
-		$cleanupMessage =  sprintf(__('Multi Sites Components successfully removed. Fields, Templates %s and Pages deleted.'), $files);
+		$cleanupMessage =  sprintf(__('Sites Manager Components successfully removed. Fields, Templates %s and Pages deleted.'), $files);
 
 		// if we made it here return success message!
 		$this->message($cleanupMessage);
-		// redirect to landing page// we want the page to reload so that user can now see Multi Sites execute screen...
+		// redirect to landing page// we want the page to reload so that user can now see Sites Manager execute screen...
 		// ...telling them to either uninstall or re-install the module
 		$this->wire('session')->redirect($this->wire('page')->url);
 

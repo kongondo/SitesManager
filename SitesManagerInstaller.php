@@ -1,31 +1,31 @@
 <?php
 
 /**
-* Multi Sites: Installer
+* Sites Manager: Installer
 *
-* This file forms part of the Multi Sites Suite.
-* It is an install wizard for Multi Sites module and is only run once when installing the module.
-* It installs 'fields', 'templates', 'files' and 'multi sites parent  pages'.
+* This file forms part of the Sites manager Suite.
+* It is an install wizard for Sites manager module and is only run once when installing the module.
+* It installs 'fields', 'templates', 'files' and 'sites manager parent  pages'.
 * If the above already exist (i.e., same names); this installer aborts wholesale.
 *
 * @author Francis Otieno (Kongondo)
-* @version 0.0.2
+* @version 0.0.3
 *
 * This is a Free Module.
 *
-* ProcessMultiSites for ProcessWire
+* ProcessSitesManager for ProcessWire
 * Copyright (C) 2017 by Francis Otieno
 * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
 *
 */
 
-class MultiSitesInstaller extends ProcessMultiSites {
+class SitesManagerInstaller extends ProcessSitesManager {
 
 
-	const PAGE_NAME = 'multi-sites';// this process' name
+	const PAGE_NAME = 'sites-manager';// this process' name
 
 	/**
-	 * Check if identical files, fields, templates and Multi Sites pages exist before install.
+	 * Check if identical files, fields, templates and Sites manager pages exist before install.
 	 *
 	 * @access public
 	 * @param null|integer $mode Whether to verify if install possible (null) or commence install (1).
@@ -50,13 +50,13 @@ class MultiSitesInstaller extends ProcessMultiSites {
 		$pageExist = $pageCheck ? true : false;// we'll use this later + $pageCheck to show error
 
 		// check if required fields already exist
-		$fields  = array('settings' => 'multi_sites_settings', 'files' => 'multi_sites_files');
+		$fields  = array('settings' => 'sites_manager_settings', 'files' => 'sites_manager_files');
 		$fieldsCheck = array();
 		foreach ($fields as $key => $value) {if($this->wire('fields')->get($value))	$fieldsCheck[] = $this->wire('fields')->get($value)->name;}
 		$fieldsExist = count($fieldsCheck) ? true : false;
 
 		// check if required templates already exist
-		$templates = array('site_profiles' => 'multi-sites-site-profiles', 'site_profile' => 'multi-sites-site-profile', 'installed_sites' => 'multi-sites-installed-sites', 'installed_site' => 'multi-sites-installed-site','wire_files' => 'multi-sites-wires', 'wire_file' => 'multi-sites-wire','install_configurations' => 'multi-sites-install-configurations', 'install_configuration' => 'multi-sites-install-configuration');
+		$templates = array('site_profiles' => 'sites-manager-site-profiles', 'site_profile' => 'sites-manager-site-profile', 'installed_sites' => 'sites-manager-installed-sites', 'installed_site' => 'sites-manager-installed-site','wire_files' => 'sites-manager-wires', 'wire_file' => 'sites-manager-wire','install_configurations' => 'sites-manager-install-configurations', 'install_configuration' => 'sites-manager-install-configuration');
 		$templatesCheck = array();
 		foreach ($templates as $template) {if($this->wire('templates')->get($template)) $templatesCheck[] = $this->wire('templates')->get($template)->name;}
 		$templatesExist = count($templatesCheck) ? true : false;
@@ -73,31 +73,31 @@ class MultiSitesInstaller extends ProcessMultiSites {
 		// required page already exists error
 		if($pageExist == true){
 			$failedPage = $pageCheck;
-			$this->error($this->_("Cannot install Multi Sites Admin page. A page named 'multi-sites' is already in use under Admin. Its title is: {$failedPage}."));
+			$this->error($this->_("Cannot install Sites manager Admin page. A page named 'sites-manager' is already in use under Admin. Its title is: {$failedPage}."));
 		}
 
 		// required fields already exists error
 		if($fieldsExist == true){
 			$failedFields = implode(', ', $fieldsCheck);
-			$this->error($this->_("Cannot install Multi Sites fields. Some field names already in use. These are: {$failedFields}."));
+			$this->error($this->_("Cannot install Sites manager fields. Some field names already in use. These are: {$failedFields}."));
 		}
 
 		// required templates already exists error
 		if($templatesExist == true){
 			$failedTemplates = implode(', ', $templatesCheck);
-			$this->error($this->_("Cannot install Multi Sites templates. Some template names already in use. These are: {$failedTemplates}."));
+			$this->error($this->_("Cannot install Sites manager templates. Some template names already in use. These are: {$failedTemplates}."));
 		}
 		
 		// required files already exists error
 		if($filesExist == true){
 			$failedFiles = implode(', ', $filesCheck);
-			$this->error($this->_("Cannot install Multi Sites files. Some file names already in use. These are: {$failedFiles}."));
+			$this->error($this->_("Cannot install Sites manager files. Some file names already in use. These are: {$failedFiles}."));
 		}
 
 		# abort if errors found
 		//if any of our checks returned true, we abort early
 		if($pageExist || $fieldsExist || $templatesExist || $filesExist) {
-			throw new WireException($this->_('Due to the above errors, Multi Sites did not install. Make necessary changes and try again.'));
+			throw new WireException($this->_('Due to the above errors, Sites manager did not install. Make necessary changes and try again.'));
 			//due to above errors, we stop executing install of the following 'templates', 'fields' and 'pages'
 		}
 
@@ -108,7 +108,7 @@ class MultiSitesInstaller extends ProcessMultiSites {
 	}
 
 	/**
-	 * Create several Multi Sites fields.
+	 * Create several Sites manager fields.
 	 *
 	 * @access private
 	 * @return $this->createTemplates().
@@ -127,8 +127,8 @@ class MultiSitesInstaller extends ProcessMultiSites {
 		 */
 
 		$fields = array(
-			'settings' => array('name'=>'multi_sites_settings', 'type'=> 'FieldtypeTextarea', 'label'=>'Multi Sites: Settings', 'collapsed'=>5,),
-			'files' => array('name'=>'multi_sites_files', 'type'=>'FieldtypeFile', 'label'=>'Multi Sites: Files',  'collapsed'=>2, 'entityencodedesc'=>1),
+			'settings' => array('name'=>'sites_manager_settings', 'type'=> 'FieldtypeTextarea', 'label'=>'Sites Manager: Settings', 'collapsed'=>5,),
+			'files' => array('name'=>'sites_manager_files', 'type'=>'FieldtypeFile', 'label'=>'Sites Manager: Files',  'collapsed'=>2, 'entityencodedesc'=>1),
 		);
 
 		foreach ($fields as $field) {
@@ -140,18 +140,18 @@ class MultiSitesInstaller extends ProcessMultiSites {
 			if(isset($field['collapsed'])) $f->collapsed = $field['collapsed'];
 			if(isset($field['entityencodedesc'])) $f->entityEncode = $field['entityencodedesc'];
 
-			if($f->name =='multi_sites_settings') {
+			if($f->name =='sites_manager_settings') {
 				$f->rows = 10;
 				$f->contentType = 0;				
 			}
 
-			if($f->name == 'multi_sites_files') {
+			if($f->name == 'sites_manager_files') {
 				$f->extensions = 'zip';// needs string
 				$f->maxFiles = 1;
 			}
 			
 
-			$f->tags = '-multisites';
+			$f->tags = '-sitesmanager';
 			$f->save(); //
 
 		}// end foreach fields
@@ -161,8 +161,8 @@ class MultiSitesInstaller extends ProcessMultiSites {
 
 		// set some Class properties on the fly. We will use this in createTemplates()
 		$this->title = $f->get('title');
-		$this->settings = $f->get('multi_sites_settings');
-		$this->msFiles = $f->get('multi_sites_files');
+		$this->settings = $f->get('sites_manager_settings');
+		$this->smFiles = $f->get('sites_manager_files');
 
 		// lets create some templates and add our fields to them
 		return $this->createTemplates();
@@ -170,9 +170,9 @@ class MultiSitesInstaller extends ProcessMultiSites {
 	}
 
 	/**
-	 * Create several Multi Sites templates.
+	 * Create several Sites manager templates.
 	 *
-	 * Create templates for each multi sites parent.
+	 * Create templates for each sites manager parent.
 	 * @see https://processwire.com/talk/topic/12130-process-module-with-certain-permission-not-showing-up/?p=112674
 	 * @access private
 	 * @return method $this->extraTemplateSettings().
@@ -180,7 +180,7 @@ class MultiSitesInstaller extends ProcessMultiSites {
 	 */
 	private function createTemplates() {
 
-		// 3. ###### We create the templates needed by Multi Sites ######
+		// 3. ###### We create the templates needed by Sites manager ######
 
 		/*
 			The template properties (indices) for the $templates array below
@@ -199,24 +199,24 @@ class MultiSitesInstaller extends ProcessMultiSites {
 		// these are field objects we set earlier. We assign them to variables for simplicity
 		$title = $this->title;
 		$settings = $this->settings;
-		$files = $this->msFiles;
+		$files = $this->smFiles;
 
 		// array for creating new templates: $k=template name; $v=template properties + fields
 		$templates = array(
 			// profiles
-			'multi-sites-site-profiles' => array('Multi Sites: Profiles', 1, '', 1, 'fields' => array($title)),
-			'multi-sites-site-profile' => array('Multi Sites: Profile', 1, 1, '', 'fields' => array($title, $settings, $files)),		
+			'sites-manager-site-profiles' => array('Sites Manager: Profiles', 1, '', 1, 'fields' => array($title)),
+			'sites-manager-site-profile' => array('Sites Manager: Profile', 1, 1, '', 'fields' => array($title, $settings, $files)),		
 			// install sites
-			'multi-sites-installed-sites' => array('Multi Sites: Installed Sites', 1, '', 1, 'fields' => array($title)),
-			'multi-sites-installed-site' => array('Multi Sites: Installed Site', 1, 1, '', 'fields' => array($title, $settings)),
+			'sites-manager-installed-sites' => array('Sites Manager: Installed Sites', 1, '', 1, 'fields' => array($title)),
+			'sites-manager-installed-site' => array('Sites Manager: Installed Site', 1, 1, '', 'fields' => array($title, $settings)),
 
 			// wire files
-			'multi-sites-wires' => array('Multi Sites: ProcessWire Files', 1, '', 1, 'fields' => array($title)),
-			'multi-sites-wire' => array('Multi Sites: ProcessWire File', 1, 1, '', 'fields' => array($title, $files)),
+			'sites-manager-wires' => array('Sites Manager: ProcessWire Files', 1, '', 1, 'fields' => array($title)),
+			'sites-manager-wire' => array('Sites Manager: ProcessWire File', 1, 1, '', 'fields' => array($title, $files)),
 
 			// install configs
-			'multi-sites-install-configurations' => array('Multi Sites: Install Configurations', 1, '', 1, 'fields' => array($title)),
-			'multi-sites-install-configuration' => array('Multi Sites: Install Configuration', 1, 1, '', 'fields' => array($title, $settings)),
+			'sites-manager-install-configurations' => array('Sites Manager: Install Configurations', 1, '', 1, 'fields' => array($title)),
+			'sites-manager-install-configuration' => array('Sites Manager: Install Configuration', 1, 1, '', 'fields' => array($title, $settings)),
 
 		);
 
@@ -241,7 +241,7 @@ class MultiSitesInstaller extends ProcessMultiSites {
 			$t->useRoles = $v[1];
 			$t->noChildren = $v[2];
 			$t->noParents = $v[3];
-			$t->tags = '-multisites';// tag our templates for grouping in admin using the tag set by the user in final install
+			$t->tags = '-sitesmanager';// tag our templates for grouping in admin using the tag set by the user in final install
 
 			// save new template with fields and settings now added
 			$t->save();
@@ -269,7 +269,7 @@ class MultiSitesInstaller extends ProcessMultiSites {
 		// prepare arrays for some templates' childTemplates AND parentTemplates
 
 		// childTemplates: key = template name; value = allowed child templates
-		$childTemplates = array('multi-sites-site-profiles' => 'multi-sites-site-profile','multi-sites-installed-sites' => 'multi-sites-installed-site','multi-sites-wires' => 'multi-sites-wire','multi-sites-install-configurations' => 'multi-sites-install-configuration');
+		$childTemplates = array('sites-manager-site-profiles' => 'sites-manager-site-profile','sites-manager-installed-sites' => 'sites-manager-installed-site','sites-manager-wires' => 'sites-manager-wire','sites-manager-install-configurations' => 'sites-manager-install-configuration');
 
 		// add allowed child templates
 		foreach ($childTemplates as $templateName => $childTemplateName) {
@@ -278,7 +278,7 @@ class MultiSitesInstaller extends ProcessMultiSites {
 			$t->save();// save the template
 		}
 		// parentTemplates: key = template name; value = allowed parent templates
-		$parentTemplates = array('multi-sites-site-profile' => 'multi-sites-site-profiles','multi-sites-installed-site' => 'multi-sites-installed-sites','multi-sites-wire' => 'multi-sites-wires','multi-sites-install-configuration' => 'multi-sites-install-configurations','multi-sites-site-profiles' => 'admin','multi-sites-installed-sites' => 'admin','multi-sites-wires' => 'admin','multi-sites-install-configurations' => 'admin');
+		$parentTemplates = array('sites-manager-site-profile' => 'sites-manager-site-profiles','sites-manager-installed-site' => 'sites-manager-installed-sites','sites-manager-wire' => 'sites-manager-wires','sites-manager-install-configuration' => 'sites-manager-install-configurations','sites-manager-site-profiles' => 'admin','sites-manager-installed-sites' => 'admin','sites-manager-wires' => 'admin','sites-manager-install-configurations' => 'admin');
 
 		// add allowed parent templates
 		foreach ($parentTemplates as $templateName => $parentTemplateName) {
@@ -292,7 +292,7 @@ class MultiSitesInstaller extends ProcessMultiSites {
 	}
 
 	/**
-	 * Create Multi Sites pages.
+	 * Create Sites manager pages.
 	 *
 	 * @access private
 	 * @return method $this->copySitesFiles().
@@ -303,15 +303,15 @@ class MultiSitesInstaller extends ProcessMultiSites {
 		$a = $this->wire('pages')->get($this->wire('config')->adminRootPageID);
 		$parent = $a->child('name='.self::PAGE_NAME);
 
-		$multiSitesPages = array(
-			'multi-sites-site-profiles' =>  'Multi Sites: Profiles',
-			'multi-sites-installed-sites' =>  'Multi Sites: Installed Sites',
-			'multi-sites-wires' =>  'Multi Sites: ProcessWire Files',
-			'multi-sites-install-configurations' =>  'Multi Sites: Install Configurations',
+		$sitesManagerPages = array(
+			'sites-manager-site-profiles' =>  'Sites Manager: Profiles',
+			'sites-manager-installed-sites' =>  'Sites Manager: Installed Sites',
+			'sites-manager-wires' =>  'Sites Manager: ProcessWire Files',
+			'sites-manager-install-configurations' =>  'Sites Manager: Install Configurations',
 		);
 
-		// create the child pages of 'Multi Sites': These will be the parent pages of 'MS Profile' and 'MS Site' pages
-		foreach ($multiSitesPages as $templateName => $title) {
+		// create the child pages of 'Sites manager': These will be the parent pages of 'MS Profile' and 'MS Site' pages
+		foreach ($sitesManagerPages as $templateName => $title) {
 			$p = new Page();
 			$p->template =  $this->wire('templates')->get($templateName);
 			$p->parent = $parent;
@@ -362,16 +362,16 @@ class MultiSitesInstaller extends ProcessMultiSites {
 
 		$data = $modules->getModuleConfigData(get_parent_class($this));
 
-		// we add multisitesFullyInstalled = 1 to finalConfig
-		$data['multisitesFullyInstalled'] = 1;
+		// we add sitesmanagerFullyInstalled = 1 to finalConfig
+		$data['sitesmanagerFullyInstalled'] = 1;
 
-		// get ProcessMultiSites class
+		// get ProcessSitesManager class
 		$pms = $modules->get(get_parent_class($this));
 
-		// save to ProcessMultiSites config data
+		// save to ProcessSitesManager config data
 		$modules->saveModuleConfigData($pms, $data);
 
-		$sucessMessage = $this->_('Multi Sites Module Successfully Installed. Fields, Templates, files and Pages created');
+		$sucessMessage = $this->_('Sites Manager Module Successfully Installed. Fields, Templates, Files and Pages created');
 		// if we made it here return success message!
 		$this->message($sucessMessage);
 		// redirect to landing page (reload)

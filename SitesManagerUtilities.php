@@ -1,25 +1,25 @@
 <?php
 
 /**
-* Multi Sites: Utilities
+* Sites Manager: Utilities
 *
-* This file forms part of the Multi Sites Suite.
+* This file forms part of the Sites Manager Suite.
 * Provides various utility methods (validation, SQL, conversions, etc) for use throughout the module.
 *
 * @author Francis Otieno (Kongondo)
-* @version 0.0.2
+* @version 0.0.3
 *
 * This is a Free Module.
 * Large chuncks of code lifted from the official ProcessWire installer (install.php).
 * @credits: Ryan Cramer
 *
-* ProcessMultiSites for ProcessWire
+* ProcessSitesManager for ProcessWire
 * Copyright (C) 2017 by Francis Otieno
 * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
 *
 */
 
-class MultiSitesUtilities extends ProcessMultiSites {
+class SitesManagerUtilities extends ProcessSitesManager {
 
 	public function __construct() {
         parent::__construct();        
@@ -170,7 +170,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
     }
 
     /**
-	 *	Get limited number of Multi Sites items (Pages).
+	 *	Get limited number of Sites Manager items (Pages).
 	 *
 	 * Could be Installed Sites, or Site Profiles, etc.
      * Includes all except items in the trash.
@@ -198,7 +198,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
     private function getProfiles() {
         $profilesArray = array();
         // @todo:? limit=100?
-        $profilesSelector = "template=multi-sites-site-profile,parent.name=multi-sites-profiles,limit=100,multi_sites_files!=''";
+        $profilesSelector = "template=sites-manager-site-profile,parent.name=sites-manager-profiles,limit=100,sites_manager_files!=''";
         $profiles = $this->getItems($profilesSelector);        
         foreach ($profiles as $profile) $profilesArray[$profile->id] = $profile->title;
         return $profilesArray;
@@ -219,7 +219,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
     public function getProcessWireVersions() {
         $pwVersionsArray = array();
         $pwVersionsArray[0] = $this->_('Select ProcessWire version to install');
-        $selector = "template=multi-sites-wire,parent.name=multi-sites-processwire-files,multi_sites_files!=''";   
+        $selector = "template=sites-manager-wire,parent.name=sites-manager-processwire-files,sites_manager_files!=''";   
         $pwVersions = $this->getItems($selector);
         foreach ($pwVersions as $pwVersion) $pwVersionsArray[$pwVersion->id] = $pwVersion->title;
         return $pwVersionsArray;
@@ -239,7 +239,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
     public function getSavedInstallConfigurations() {
         $installConfigurationsArray = array();
         $installConfigurationsArray[0] = $this->_('Select an install configuration');
-        $selector = "template=multi-sites-install-configuration,parent.name=multi-sites-install-configurations,multi_sites_settings!=''";   
+        $selector = "template=sites-manager-install-configuration,parent.name=sites-manager-install-configurations,sites_manager_settings!=''";   
         $configs = $this->getItems($selector);
         foreach ($configs as $config) $installConfigurationsArray[$config->id] = $config->title;
         return $installConfigurationsArray;
@@ -257,7 +257,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
         $configs = array();
         $configPage = $this->wire('pages')->get($id);
         if($configPage && $configPage->id) {
-            $configs = json_decode($configPage->multi_sites_settings, true);
+            $configs = json_decode($configPage->sites_manager_settings, true);
         }
         return $configs;
     }
@@ -273,7 +273,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
      * 
      */
     public function getInstallJSONConfigurableValues() {
-        $configurableValues = array('ms_installation_profile','ms_admin_theme','ms_colour_theme','ms_timezone','ms_db_user','ms_db_host','ms_db_port','ms_db_engine','ms_db_charset','ms_superuser_name','ms_superuser_email','ms_directories_permission','ms_files_permission');
+        $configurableValues = array('sm_installation_profile','sm_admin_theme','sm_colour_theme','sm_timezone','sm_db_user','sm_db_host','sm_db_port','sm_db_engine','sm_db_charset','sm_superuser_name','sm_superuser_email','sm_directories_permission','sm_files_permission');
         return $configurableValues;
     }
 
@@ -293,12 +293,12 @@ class MultiSitesUtilities extends ProcessMultiSites {
         else {
             //$profileName = $this->wire('sanitizer')->pageName($profile);// @todo: not working as expected compared to actionUpload names!
             $profileName = $this->wire('sanitizer')->text($profile);
-            $selector = "title=$profileName,template=multi-sites-site-profile,parent.name=multi-sites-profiles,include=all";
+            $selector = "title=$profileName,template=sites-manager-site-profile,parent.name=sites-manager-profiles,include=all";
         }
 
         $profilePage = $this->wire('pages')->get($selector);
         if($profilePage && $profilePage->id > 0) {
-            $file = $profilePage->multi_sites_files->first();
+            $file = $profilePage->sites_manager_files->first();
             if($file) {
                 $profileFile['path'] = $file->filename;
                 $profileFile['name'] =  rtrim(str_replace($file->ext, '', $file->name), ".");
@@ -421,14 +421,14 @@ class MultiSitesUtilities extends ProcessMultiSites {
                         ''
                 ),
                 1 => array($this->_('Title'),
-                'text', 'ms_site_title', $this->getNotes('site_title')
+                'text', 'sm_site_title', $this->getNotes('site_title')
                 ),
                 2 => array($this->_('Description'),
-                'textarea', 'ms_site_description', $this->getNotes('description')
+                'textarea', 'sm_site_description', $this->getNotes('description')
                 ),
 
                 3 => array($this->_('Site Type'),
-                'radio', 'ms_create_site_type', $this->getNotes('site_type'), 
+                'radio', 'sm_create_site_type', $this->getNotes('site_type'), 
                 array(
                     1=>$this->_('Single Site'),
                     2=>$this->_('Multi Site')
@@ -437,7 +437,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
                 ),
 
                 4 => array($this->_('Install Configuration'),
-                'radio', 'ms_create_method', $this->getNotes('install_method'), 
+                'radio', 'sm_create_method', $this->getNotes('install_method'), 
                 array(
                     1=>$this->_('Form'),
                     2=>$this->_('Copy & Paste'),
@@ -447,47 +447,52 @@ class MultiSitesUtilities extends ProcessMultiSites {
                 ),
 
                 5 => array($this->_('Saved Configuration'),
-                'select', 'ms_create_json_configs', $this->getNotes('saved_configurations'), $this->getSavedInstallConfigurations()
+                'select', 'sm_create_json_configs', $this->getNotes('saved_configurations'), $this->getSavedInstallConfigurations()
                 ),
                 
                 6 => array($this->_('Install Directory'),
-                'text', 'ms_site_install_directory', $this->getNotes('install_directory')
+                'text', 'sm_site_install_directory', $this->getNotes('install_directory')
                 ),
                 
                 7 => array($this->_('ProcessWire Version'),
-                'select', 'ms_create_pw_version_select', $this->getNotes('processwire_version'), $this->getProcessWireVersions()
+                'select', 'sm_create_pw_version_select', $this->getNotes('processwire_version'), $this->getProcessWireVersions()
                 ),
 
                 8 => array($this->_('Site Directory'),
-                'text', 'ms_site_directory', $this->getNotes('site_directory')
+                'text', 'sm_site_directory', $this->getNotes('site_directory')
                 ),
                 9 => array($this->_('Hostname and Domain'),
-                'text', 'ms_site_domain', $this->getNotes('site_domain')
+                'text', 'sm_site_domain', $this->getNotes('site_domain')
                 ),                
                 10 => array($this->_('Installation Profile'),
-                    'select', 'ms_installation_profile', $this->getNotes('installation_profile'), $this->getProfiles()
+                    'select', 'sm_installation_profile', $this->getNotes('installation_profile'), $this->getProfiles()
                 ),
                 11 => array($this->_('Admin Login URL') .
-                ' <small>(a-z 0-9)</small>', 'text', 'ms_admin_url', $this->getNotes('admin_login_url')
+                ' <small>(a-z 0-9)</small>', 'text', 'sm_admin_url', $this->getNotes('admin_login_url')
                 ),
                 12 => array($this->_('Admin Theme'),
-                'select', 'ms_admin_theme', $this->getNotes('admin_theme'), $this->adminThemes
+                'select', 'sm_admin_theme', $this->getNotes('admin_theme'), $this->adminThemes
                 ),
                 13 => array($this->_('Colour Theme'),
-                    'select', 'ms_colour_theme', $this->getNotes('colour_theme'), $this->colours
+                    'select', 'sm_colour_theme', $this->getNotes('colour_theme'), $this->colours
                 ),
                 14 => array($this->_('Default Time Zone'),
-                'text', 'ms_timezone', $this->getNotes('time_zone')
+                'text', 'sm_timezone', $this->getNotes('time_zone')
                 ),
                 // @see: original dbConfig() add $_SERVER['SERVER_NAME']?
                 // @note: whitelist
                 15 => array($this->_('HTTP Host Names'),
-                'textarea', 'ms_http_host_names', $this->getNotes('host_names')
+                'textarea', 'sm_http_host_names', $this->getNotes('host_names')
                 ),
 
                 16 => array($this->_('Type or Paste Configurations'),
-                'textarea', 'ms_create_copy_paste', $this->getNotes('type_paste_configurations')
+                'textarea', 'sm_create_copy_paste', $this->getNotes('type_paste_configurations')
                 ),
+                // @note: not in use currently
+                /* 17 => array($this->_('Domain Scheme/Protocol'),
+                'radio', 'sm_domain_protocol', $this->getNotes('domain_protocol'),array(1=>'HTTPS', 2=>'HTTP'),
+				'checked' => 1
+                ), */
             ),
             // database
             'database' => array(
@@ -496,20 +501,20 @@ class MultiSitesUtilities extends ProcessMultiSites {
                     ''
                 ),
                 1 => array($this->_('DB Name'),
-                    'text', 'ms_db_name', $this->getNotes('db_name')
+                    'text', 'sm_db_name', $this->getNotes('db_name')
                 ),
                 2 => array($this->_('DB User'),
-                    'text', 'ms_db_user', $this->getNotes('db_user'), $this->getMySQLDefaults('dbUser')
+                    'text', 'sm_db_user', $this->getNotes('db_user'), $this->getMySQLDefaults('dbUser')
                 ),
                 3 => array($this->_('DB Password'),
-                    'password', 'ms_db_pass', $this->getNotes('db_pass'),
+                    'password', 'sm_db_pass', $this->getNotes('db_pass'),
                     $this->getMySQLDefaults('dbPass')
                 ),
                 4 => array($this->_('DB Host'),
-                'text', 'ms_db_host', $this->getNotes('db_host'),$this->getMySQLDefaults('dbHost'),
+                'text', 'sm_db_host', $this->getNotes('db_host'),$this->getMySQLDefaults('dbHost'),
                 ),
                 5 => array($this->_('DB Port'),
-                'text', 'ms_db_port', $this->getNotes('db_port'),$this->getMySQLDefaults('dbPort')
+                'text', 'sm_db_port', $this->getNotes('db_port'),$this->getMySQLDefaults('dbPort')
                 ),
             ),
             // super user
@@ -519,17 +524,17 @@ class MultiSitesUtilities extends ProcessMultiSites {
                     ''
                 ),
                 1 => array($this->_('User Name') .
-                    ' <small>(a-z 0-9)</small>', 'text', 'ms_superuser_name', $this->getNotes('superuser_name')
+                    ' <small>(a-z 0-9)</small>', 'text', 'sm_superuser_name', $this->getNotes('superuser_name')
                 ),
                 2 => array($this->_('Password'),
-                    'password', 'ms_superuser_pass', $this->getNotes('superuser_password')
+                    'password', 'sm_superuser_pass', $this->getNotes('superuser_password')
                 ),
                 3 => array($this->_('Password') .
                 ' <small>(' . $this->_('confirm') . ')</small>',
-                'password', 'ms_superuser_pass_confirm', $this->getNotes('superuser_password_confirm')
+                'password', 'sm_superuser_pass_confirm', $this->getNotes('superuser_password_confirm')
                 ),
                 4 => array($this->_('Email Address'),
-                'email', 'ms_superuser_email', $this->getNotes('superuser_email')
+                'email', 'sm_superuser_email', $this->getNotes('superuser_email')
                 ),
             ),            
             // file permissions
@@ -539,11 +544,11 @@ class MultiSitesUtilities extends ProcessMultiSites {
                     '','', $this->getNotes('file_permissions_header')
                 ),
                 1 => array($this->_('Directories') .
-                    ' <small>(a-z 0-9)</small>', 'text', 'ms_directories_permission', $this->getNotes('directories_permission'),
+                    ' <small>(a-z 0-9)</small>', 'text', 'sm_directories_permission', $this->getNotes('directories_permission'),
                     $this->getChmod('chmodDir')
                 ),
                 2 => array($this->_('Files'),
-                    'text', 'ms_files_permission', $this->getNotes('files_permission'),
+                    'text', 'sm_files_permission', $this->getNotes('files_permission'),
                     $this->getChmod('chmodFile')
                 ),
 
@@ -568,11 +573,11 @@ class MultiSitesUtilities extends ProcessMultiSites {
         $strongPassword = '<a target="_blank" href="http://en.wikipedia.org/wiki/Password_strength">' . $this->_('strong password') . '</a>';
         $supNameNote = sprintf(__('You will use this account to login to your ProcessWire admin. It will have superuser access, so please make sure to create a %s. It must be at least 2 characters long.'), $strongPassword);
 
-        $trailingSlash = '<span class="ms_red">' . $this->_('including a trailing slash') . '</span>';
+        $trailingSlash = '<span class="sm_red">' . $this->_('including a trailing slash') . '</span>';
 
         ## type/paste in configuration key=value pairs
 
-        $configurationKeyValueInfo = '<a target="_blank" href="https://github.com/kongondo/MultiSites">' . $this->_('documentation') . '</a>';       
+        $configurationKeyValueInfo = '<a target="_blank" href="https://github.com/kongondo/SitesManager">' . $this->_('documentation') . '</a>';       
 
         ## files stuff
         $securingFiles = '<a target="_blank" href="https://processwire.com/docs/security/file-permissions/">' . $this->_('Read more about securing file permissions') . '</a>';
@@ -607,17 +612,13 @@ class MultiSitesUtilities extends ProcessMultiSites {
 
             'install_method' => $this->_('Choose how you want to specify the configurations needed to install this site. The saved configurations option can only be used if you have previously uploaded at least one install configuration. In all cases, you will need to enter password details.'),
 
-
-            
-
-
             'install_directory' => sprintf(__('Enter an absolute path (%1$s) to the install directory for your single site. This directory must already exist. For your information, the ProcessWire root path where this module is running off of is: %2$s.'), $trailingSlash, $this->getPWRootPath()),
             
             'processwire_version' => $this->_('Please select a ProcessWire version to install.'),
 
             'site_directory' => $this->_("The name of the site directory to be used with this install. The name you indicate here will be pre-pended with 'site-' when creating the site directory. This is to ensure that ProcessWire's htaccess file can recognize and protect files in that directory. Hence, do not enter the word 'site-' yourself. It is advisable to use a single lowercase word. The final directory will be named similar to 'site-domain' or 'site-something.  This value will be used by index.config.php."),
             
-            'site_domain' => $this->_("Enter the hostname including the domain for this site. For instance, 'mydomain.com', 'www.mydomain.com' or 'dev.mydomain.com'. For multi sites, this value will be used by index.config.php."),
+            'site_domain' => $this->_("Enter the hostname including the domain for this site. For instance, 'mydomain.com', 'www.mydomain.com' or 'dev.mydomain.com'. For multi-sites, this value will be used by index.config.php."),
 
             'installation_profile' => $this->_('A site installation profile is a ready-to-use and modify site for ProcessWire. If you are just getting started with ProcessWire, we recommend choosing the Default site profile. If you already know what you are doing, you might prefer the Blank site profile.'),
             
@@ -631,9 +632,12 @@ class MultiSitesUtilities extends ProcessMultiSites {
             
             'host_names' => $this->_('What host names will this installation run on now and in the future? Please enter one host per line. You may also choose to leave this blank to auto-detect on each request, but we recommend using this whitelist for the best security in production environments. This field is recommended but not required. You can set this later by editing the file /site/config.php (setting \$config->httpHosts).'),
             
-            'type_paste_configurations' => sprintf(__('Type or Paste in comma-separated key=value pairs of configurations to use for this install. For instance: dbName=my_database_name,colourTheme=classic,superUserName=webmaster, etc. Please have a look at the %s for all required keys.'), $configurationKeyValueInfo),
+            'type_paste_configurations' => sprintf(__('Type or Paste in comma-separated key=value pairs of configurations to use for this install. Each key=value pair must be in its own line. For instance: dbName=my_database_name OR colourTheme=classic, etc. Please have a look at the %s for all required keys.'), $configurationKeyValueInfo),
 
             'saved_configurations' => $this->_('Select a configuration to use for this install.'),
+            
+            // @note: not in use currently.
+            'domain_protocol' => $this->_('This will only be used to set up your Superuser account. It has nothing to do with how you will set up your site. Select how the domain you are installing this site for is currently reached. If it is already set up to connect via HTTPS, then select that. Othwerwise, select HTTP.'),
 
             # database
             'db_name' => $this->_('The name of the MySQL 5.x database to connect to on your server. If the database does not exist, we will attempt to create it. Make sure you are installing to a separate database than the one used by your other sites.'),
@@ -697,7 +701,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
     /**
      * Helper method to get information about site install configurations.
      * 
-     * Used by MultiSitesAction::actionCreateTypePaste() to ensure all required values were submitted.
+     * Used by SitesManagerAction::actionCreateTypePaste() to ensure all required values were submitted.
      *
      * @access public
      * @return array $defaultConfigs Array of required key=>value pairs.
@@ -729,7 +733,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
     /* ######################### - SETTERS - ######################### */
 
     /**
-     * Set a text to contextual links for creating various items in Multi Sites dashboard.
+     * Set a text to contextual links for creating various items in Sites Manager dashboard.
      *
      * @access public
      * @return string $createLink Lik text for contextual creation of item.
@@ -760,7 +764,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
     }
 
     /**
-     * Set a text to contextual links for going back to list of various items in Multi Sites dashboard.
+     * Set a text to contextual links for going back to list of various items in Sites Manager dashboard.
      *
      * @access public
      * @return string $backLink Lik text for contextual back link to items.
@@ -866,7 +870,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
      * 
      */
     public function profilesAvailableCheck($notices) {
-        $selector = "template=multi-sites-site-profile,parent.name=multi-sites-profiles,limit=1";
+        $selector = "template=sites-manager-site-profile,parent.name=sites-manager-profiles,limit=1";
         $item = $this->getItems($selector);
         if(!$item->count) $notices['errors'][] = $this->_('No site profiles to install!.');
         return $notices;
@@ -1169,7 +1173,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
     public function validatePageTitle($title, $notices){
         $notices['no_duplicate_site_title'] = 1;
         $name = $this->wire('sanitizer')->pageName($title);
-        $parent = $this->wire('pages')->get('parent.name=multi-sites,name=multi-sites-installed-sites, template=multi-sites-installed-sites');
+        $parent = $this->wire('pages')->get('parent.name=sites-manager,name=sites-manager-installed-sites, template=sites-manager-installed-sites');
         $child = $parent->child( "name={$name}, include=all" )->id;
         //if name already in use
         if($child) $notices['no_duplicate_site_title'] = 0;       
@@ -1641,6 +1645,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
 
         // @todo: add an install modules manifest?        
         $notices = $this->saveAdminAccountConfig($values, $notices);
+        $notices['domain_protocol'] = 0;
 
         if(1 == $notices['save_admin_config']) {
            
@@ -1653,12 +1658,19 @@ class MultiSitesUtilities extends ProcessMultiSites {
             $postURL = "$hostAndDomainName/processwire/";
     
             // @note: we only post key=>value token to identify ourselves. Rest of credentials will be done via 'file_put_contents'
-            $http = new WireHttp();
-            $result = $http->post($postURL, $data);
+            $httpPrefixes = array('https://', 'http://');
+            $http = new WireHttp();            
+            // @TODO: we first try with HTTPS. if that fails, we try HTTP:
+            $result = $http->post($httpPrefixes[0] . $postURL, $data);
+            #$result = $http->post($postURL, $data);
+            if(!$result) {
+                $result = $http->post($httpPrefixes[1] . $postURL, $data);
+                $notices['domain_protocol'] = 1;            
+            }
 
+            // @TODO: If total failure, what to do? reverse changes? e.g. remove installation?
             if($result) $notice['messages'][] = $this->_('Admin account successfully saved.');    
-            else $notices['errors'][] = $this->_('Error saving admin account.');
-           
+            else $notices['errors'][] = $this->_('Error saving admin account.');           
             
             ##########
 
@@ -1735,6 +1747,8 @@ class MultiSitesUtilities extends ProcessMultiSites {
         $this->tokenKey = $tokenKey = 'MS_' . md5(mt_rand() . microtime(true)); 
         $this->tokenValue = $tokenValue = $tokenValue = 'MS_' . md5(mt_rand() . microtime(true)); 
         $sessionIP = $this->wire('session')->getIP();
+        #$sessionIP = $_SERVER['REMOTE_ADDR'];
+
 
         ############################# CONTENT TO APPEND TO TEMPORARY admin.php #############################
 
@@ -1750,9 +1764,11 @@ class MultiSitesUtilities extends ProcessMultiSites {
 
         $cfg .= 
             "\n" .
-            "\nif(\$input->post->$tokenKey === '$tokenValue' && \$_SERVER['REMOTE_ADDR'] === '$sessionIP') {" .
-                "\n\tadminAccountSave(\$adminAccountArray);" .       
-            "\n};";
+            #"\nif(\$input->post->$tokenKey === '$tokenValue' && \$_SERVER['REMOTE_ADDR'] === '$sessionIP') {" .
+            "\nif(\$input->post->$tokenKey === '$tokenValue') {" .
+            #"\nif(\$input->post) {" .
+                "\n\tadminAccountSave(\$adminAccountArray);" .
+            "\n}";
     
         ############################# APPEND CONTENT TEMPORARY admin.php #############################
 
@@ -1845,7 +1861,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
             $notices['wire_zip'] = 0;
         }
 
-        // @note: version's page to be created/updated in MultiSitesActions::actionVersions()
+        // @note: version's page to be created/updated in SitesManagerActions::actionVersions()
         
         return $notices;
 
@@ -2188,7 +2204,7 @@ class MultiSitesUtilities extends ProcessMultiSites {
         if($pwPage && $pwPage->id > 0) {
 
             // get the file
-            $pwZipFile  = $pwPage->multi_sites_files->first();
+            $pwZipFile  = $pwPage->sites_manager_files->first();
             $pwZipFilePath = $pwZipFile->filename;
             // unzip and process the file @note: PW will throw exception on any error here
             $notices = $this->unzipFile($pwZipFilePath, $this->privateTempUploadsDir, $notices);

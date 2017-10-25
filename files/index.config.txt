@@ -11,7 +11,7 @@
  * 
  * http://processwire.com
  * 
- * @edited by @kongondo for ProcessMultiSites module
+ * @edited by @kongondo for ProcessSitesManager module
  * @note:   Sites hostname => directories pairs are saved in root/sites.json.
  *          We fetch the json, convert to required array and return to ProcessWire.
  *          The JSON file is updated every time we add/edit/remove a site.

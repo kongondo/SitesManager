@@ -1,31 +1,31 @@
 <?php
 
 /**
-* Multi Sites: Render
+* Sites Manager: Render
 *
-* This file forms part of the Multi Sites Suite.
+* This file forms part of the Sites Manager Suite.
 * Renders markup for output in various places in the module.
 *
 * @author Francis Otieno (Kongondo)
-* @version 0.0.2
+* @version 0.0.3
 *
 * This is a Free Module.
 *
-* ProcessMultiSites for ProcessWire
+* ProcessSitesManager for ProcessWire
 * Copyright (C) 2017 by Francis Otieno
 * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
 *
 */
 
-class MultiSitesRender extends ProcessMultiSites {
+class SitesManagerRender extends ProcessSitesManager {
 
 	public function __construct() {
 		parent::__construct();
-		$this->msUtilities = new MultiSitesUtilities();
-		$this->msActions = new MultiSitesActions();
+		$this->smUtilities = new SitesManagerUtilities();
+		$this->smActions = new SitesManagerActions();
 
 		// get sanitised url segments
-		$urlSegments = $this->msUtilities->getURLSegments();
+		$urlSegments = $this->smUtilities->getURLSegments();
 		$this->urlSeg1 = $urlSegments[0];
 		$this->urlSeg2 = $urlSegments[1];
 		#$this->urlSeg3 = $urlSegments[2];
@@ -45,17 +45,17 @@ class MultiSitesRender extends ProcessMultiSites {
 
 		## catch posts
 		$post = $this->wire('input')->post;
-		if($post->ms_installed_btn) {
+		if($post->sm_installed_btn) {
 			$actionType = 'installed';
-			$this->msActions->actionItems($actionType, $post);
+			$this->smActions->actionItems($actionType, $post);
 		}
 
 		## prepare variables
 		$out = '';
-		$clientSideConfirmOptions = array('', 'hidden', 'ms_confirm', '', 0);
+		$clientSideConfirmOptions = array('', 'hidden', 'sm_confirm', '', 0);
 		$button = '';
-		$selector = "template=multi-sites-installed-site,parent.name=multi-sites-installed-sites,limit={$this->showLimit}";
-		$items = $this->msUtilities->getItems($selector);
+		$selector = "template=sites-manager-installed-site,parent.name=sites-manager-installed-sites,limit={$this->showLimit}";
+		$items = $this->smUtilities->getItems($selector);
 
 		$actions = array(
 			'select' => $this->_('Actions (checked items)'),// @note: this is set as the initial value
@@ -66,11 +66,11 @@ class MultiSitesRender extends ProcessMultiSites {
 			'delete_all' => $this->_('Delete Site Directory and Database'),
 		);
 
-		$selectOptions = array('','select', 'ms_items_action_select', '', $actions);
+		$selectOptions = array('','select', 'sm_itesm_action_select', '', $actions);
 
 		$buttonOptions = array(
-			'idName' => 'ms_installed_btn',
-			'classes' => 'ms_bulk_action_btn',
+			'idName' => 'sm_installed_btn',
+			'classes' => 'sm_bulk_action_btn',
 			'value' => $this->_('Execute')
 		);
 
@@ -84,13 +84,13 @@ class MultiSitesRender extends ProcessMultiSites {
 			$out .= $this->renderHeadlineStrip($items) .
 					$this->renderTopActionStrip($items, $selectOptions) .			
 					$this->renderInstalledSitesList($items) .
-					'<div id="ms_bottom_pagination">' . $this->renderPagination($items) . '</div>';
+					'<div id="sm_bottom_pagination">' . $this->renderPagination($items) . '</div>';
 			$button = $this->renderInputButton($buttonOptions);
 		}
 
 		$out = $this->renderMenu() .
-				'<div id="ms_installed_sites_wrapper" class="InputfieldContent ms_form_wrapper">' .
-					'<form method="post" action="./" id="ms_installed_sites_form">' .
+				'<div id="sm_installed_sites_wrapper" class="InputfieldContent sm_form_wrapper">' .
+					'<form method="post" action="./" id="sm_installed_sites_form">' .
 						$out . 
 						$this->renderInputHidden($clientSideConfirmOptions) .
 						$button .						
@@ -113,16 +113,18 @@ class MultiSitesRender extends ProcessMultiSites {
 	private function renderInstalledSitesList($installedSites) {
 		
 		$out = '';
-		$prefix = 'ms_items_action_selected';
+		$prefix = 'sm_itesm_action_selected';
 		
 		foreach ($installedSites as $s) {
-			$ss = $this->msUtilities->getSettingsObject($s->multi_sites_settings);
+			$ss = $this->smUtilities->getSettingsObject($s->sites_manager_settings);
 
 			$directory = 'site-' . $ss->directory;// @note: directory of the install
-			$siteURL = ' <a href="http://'.$ss->hostAndDomainName.'" target="_blank">'.   $ss->hostAndDomainName . '</a>';
-			$siteAdminURL = ' <a href="http://'.$ss->hostAndDomainName. '/' . $ss->adminLoginName .'/" target="_blank">'.   $ss->adminLoginName . '</a>';
+			$protocol = 1 == $ss->domainProtocol ? 'http://' : 'https://';
+			$siteURL = ' <a href="'. $protocol . $ss->hostAndDomainName.'" target="_blank">'.   $ss->hostAndDomainName . '</a>';
+			$siteAdminURL = ' <a href="'. $protocol .$ss->hostAndDomainName. '/' . $ss->adminLoginName .'/" target="_blank">'.   $ss->adminLoginName . '</a>';
 			$siteType = $this->_('Multi Site');
 			$versionTitle = '';
+			
 			// single site
 			if(1 == $ss->siteType) {
 				$directory = $ss->directory;// @note: path to directory of the install
@@ -134,7 +136,7 @@ class MultiSitesRender extends ProcessMultiSites {
 				}
 			}
 
-			$out .= '<div class="ms_installed_sites" data-directory="'.$directory.'" data-database="'.$ss->dbName.'" data-site-type="'.$ss->siteType.'">' . 
+			$out .= '<div class="sm_installed_sites" data-directory="'.$directory.'" data-database="'.$ss->dbName.'" data-site-type="'.$ss->siteType.'">' . 
 						$this->renderInputCheckbox(array('','checkbox',$prefix.'[]','',$s->id,'mode'=>'multiple','id'=>$prefix.'_'.$s->id)) .
 						'<h2>'. $s->title.'</h2>' .
 						$this->renderLockedForEdits($s) .
@@ -161,7 +163,6 @@ class MultiSitesRender extends ProcessMultiSites {
 			
 			
 		}// end foreach $installedSites
-		
 		return $out;
 
 
@@ -180,28 +181,28 @@ class MultiSitesRender extends ProcessMultiSites {
 	
 		## catch posts
 		$post = $this->wire('input')->post;
-		if($post->ms_create_btn || $post->ms_create_and_view_btn) {
+		if($post->sm_create_btn || $post->sm_create_and_view_btn) {
 			$actionType = 'create';
-			$this->msActions->actionItems($actionType, $post);
+			$this->smActions->actionItems($actionType, $post);
 		}
 		
 		#++++++++++++++++++++++++++++++++++++++#
 		
-		$this->notices = $this->msUtilities->compatibilityCheck();// returns array		
+		$this->notices = $this->smUtilities->compatibilityCheck();// returns array		
 
 		## prepare variables
 		$out = '';
 		$errors = '';
-		$timeZoneHiddenOptions = array('', 'hidden', 'ms_timezone_id', '');
-		$clientSideValidationOptions = array('', 'hidden', 'ms_confirm', '', 0);
+		$timeZoneHiddenOptions = array('', 'hidden', 'sm_timezone_id', '');
+		$clientSideValidationOptions = array('', 'hidden', 'sm_confirm', '', 0);
 		$buttonOptions = array(
-						'idName' => 'ms_create_btn',
-						'classes' => 'ms_create_execute_save',
+						'idName' => 'sm_create_btn',
+						'classes' => 'sm_create_execute_save',
 						'value' => $this->_('Save')
 					);
 
 		$buttonSaveAndViewOptions = array(
-			'idName' => 'ms_create_and_view_btn',
+			'idName' => 'sm_create_and_view_btn',
 			'classes' => 'ui-priority-secondary',
 			'value' => $this->_('Save & View Sites'),
 			'clone' => 0
@@ -212,7 +213,7 @@ class MultiSitesRender extends ProcessMultiSites {
 		$profilesMissingNotice = sprintf(__('Installation site profiles are missing. %s at least one to get started.'), $uploadProfileLink);
 
 		## populate $out
-		// render back links
+		// render back links		
 		$out .= $this->renderBackLink();
 
 		## checks
@@ -226,26 +227,26 @@ class MultiSitesRender extends ProcessMultiSites {
 			$out .= $this->_('if you have questions or think the error is incorrect please'); 
 			$out .= ' <a href="https://processwire.com/talk/" target="_blank">' . $this->_('contact ProcessWire support') . '</a>.</p>';	
 			// run error messages
-			$this->msUtilities->runNotices($this->notices['errors'], 2);			
+			$this->smUtilities->runNotices($this->notices['errors'], 2);			
 			return $out;
 		}
 
 		else {
 			// run warnings
-			if(count($this->notices['warnings'])) $this->msUtilities->runNotices($this->notices['warnings'], 3);
+			if(count($this->notices['warnings'])) $this->smUtilities->runNotices($this->notices['warnings'], 3);
 			// run sucess messages
-			$this->msUtilities->runNotices($this->notices['messages'], 1);
+			$this->smUtilities->runNotices($this->notices['messages'], 1);
 		}
 
 		// create form
-		$out .= '<div id="ms_create_wrapper" class="InputfieldContent ms_form_wrapper">';
+		$out .= '<div id="sm_create_wrapper" class="InputfieldContent sm_form_wrapper">';
 		// profiles exist check
-		$this->notices = $this->msUtilities->profilesAvailableCheck($this->notices);// returns array
+		$this->notices = $this->smUtilities->profilesAvailableCheck($this->notices);// returns array
 		if(count($this->notices['errors']))$out .= $profilesMissingNotice;
 		// if we have profiles, attach sites create form
 		else {
 			$out .= 
-				'<form method="post" action="./" id="ms_create_form">' .
+				'<form method="post" action="./" id="sm_create_form">' .
 					// create site: form
 					$this->renderCreateForm() .
 					$this->renderInputHidden($timeZoneHiddenOptions) .
@@ -274,18 +275,18 @@ class MultiSitesRender extends ProcessMultiSites {
 	private function renderCreateForm() {
 
 		$siteCreateNotice =
-		'<div id="ms_notice">' .
+		'<div id="sm_notice">' .
 			'<p>' . $this->_("Use this form to create sites. Except for 'Description' and 'HTTP Host Names', all fields must be completed.") . '</p>' .
 			'<p>' . $this->_("Please note that the wire folder is not needed. Please remove it from your site profile if present.") . '</p>' .
 		'</div>';
 		
-		$out =	'<div id="ms_create_form_inputs_wrapper">' .
+		$out =	'<div id="sm_create_form_inputs_wrapper">' .
 					$siteCreateNotice .			
 					$this->renderSpinner() .					
-					$this->renderCreateFormSections($this->msUtilities->getSiteOptions('site')) .
-					$this->renderCreateFormSections($this->msUtilities->getSiteOptions('database')) .
-					$this->renderCreateFormSections($this->msUtilities->getSiteOptions('superuser')) .
-					$this->renderCreateFormSections($this->msUtilities->getSiteOptions('file_permissions')) .
+					$this->renderCreateFormSections($this->smUtilities->getSiteOptions('site')) .
+					$this->renderCreateFormSections($this->smUtilities->getSiteOptions('database')) .
+					$this->renderCreateFormSections($this->smUtilities->getSiteOptions('superuser')) .
+					$this->renderCreateFormSections($this->smUtilities->getSiteOptions('file_permissions')) .
 				'</div>';
 
 		return $out;
@@ -304,34 +305,34 @@ class MultiSitesRender extends ProcessMultiSites {
 		
 		$out = '';
 
-		$class = ' ms_setting_header';
+		$class = ' sm_setting_header';
 		$sectionIDs = array('site', 'database', 'superuser', 'file_permissions');
-		$hideInputsArray = array('ms_create_pw_version_select', 'ms_site_install_directory', 'ms_create_copy_paste', 'ms_create_json_configs');
-		$configurableInputsArray = $this->msUtilities->getInstallJSONConfigurableValues();
+		$hideInputsArray = array('sm_create_pw_version_select', 'sm_site_install_directory', 'sm_create_copy_paste', 'sm_create_json_configs');
+		$configurableInputsArray = $this->smUtilities->getInstallJSONConfigurableValues();
 
 		foreach($options as $key => $value) {		
 			
 			$class = '';
-			$cssClass = 'ms_setting_header';
+			$cssClass = 'sm_setting_header';
 					
 			if(in_array($key, $sectionIDs)) {
 				$notes = isset($value[3]) ? $value[3] : '';
-				$out .=	'<div id="ms_'.$key.'_section" class="ms_section">' .
+				$out .=	'<div id="sm_'.$key.'_section" class="sm_section">' .
 							'<h2>' . $value[0] .'</h2>'.
-							'<p class="ms_section_notes">' . $notes.'</p>' .// section heading
+							'<p class="sm_section_notes">' . $notes.'</p>' .// section heading
 						'</div>';						
 			}
 			else {
 				
 				$headerID = $value[2] . '_wrapper';
-				$cssClass .= in_array($value[2], $hideInputsArray) ? ' ms_hide' : '';
-				$cssClass .= in_array($value[2], $configurableInputsArray) ? ' ms_configurable' : '';
+				$cssClass .= in_array($value[2], $hideInputsArray) ? ' sm_hide' : '';
+				$cssClass .= in_array($value[2], $configurableInputsArray) ? ' sm_configurable' : '';
 
 				$class = ' class="'.$cssClass.'"';				
 				
 				$out .=	'<div id="'.$headerID.'"' . $class .'>' .			
-							'<div class="ms_setting">' . $this->getInput($value) . '</div>' .// label+input
-							'<div class="ms_setting"><p class="ms_setting_notes">'  . $value[3] . '</p></div>' .// notes
+							'<div class="sm_setting">' . $this->getInput($value) . '</div>' .// label+input
+							'<div class="sm_setting"><p class="sm_setting_notes">'  . $value[3] . '</p></div>' .// notes
 						'</div>';
 			}
 		}
@@ -355,9 +356,9 @@ class MultiSitesRender extends ProcessMultiSites {
 
 		## catch posts
 		$post = $this->wire('input')->post;
-		if($post->ms_profiles_btn) {
+		if($post->sm_profiles_btn) {
 			$actionType = 'profiles';
-			$this->msActions->actionItems($actionType, $post);
+			$this->smActions->actionItems($actionType, $post);
 		}
 		
 		## prepare variables
@@ -366,13 +367,13 @@ class MultiSitesRender extends ProcessMultiSites {
 		$popupTitle = $this->_('Action Profile');
 		$button = '';
 		$buttonOptions = array(
-			'idName' => 'ms_profiles_btn',
-			'classes' => 'ms_bulk_action_btn',
+			'idName' => 'sm_profiles_btn',
+			'classes' => 'sm_bulk_action_btn',
 			'value' => $this->_('Execute')
 		);
 
-		$selector = "template=multi-sites-site-profile,parent.name=multi-sites-profiles,limit={$this->showLimit},multi_sites_files!=''";
-		$items = $this->msUtilities->getItems($selector);
+		$selector = "template=sites-manager-site-profile,parent.name=sites-manager-profiles,limit={$this->showLimit},sites_manager_files!=''";
+		$items = $this->smUtilities->getItems($selector);
 
 		$actions = array(
 			'select' => $this->_('Actions (checked items)'),// @note: this is set as the initial value
@@ -382,7 +383,7 @@ class MultiSitesRender extends ProcessMultiSites {
 			'delete' => $this->_('Delete Profile'),
 		);
 
-		$selectOptions = array('','select', 'ms_items_action_select', '', $actions);
+		$selectOptions = array('','select', 'sm_itesm_action_select', '', $actions);
 		
 		## populate $out
 		if(!$items->count) {
@@ -396,14 +397,14 @@ class MultiSitesRender extends ProcessMultiSites {
 			$out .= $this->renderHeadlineStrip($items) .
 					$this->renderTopActionStrip($items, $selectOptions) .
 					$this->renderSitesProfilesList($items) .			
-					'<div id="ms_bottom_pagination">' . $this->renderPagination($items) . '</div>';
+					'<div id="sm_bottom_pagination">' . $this->renderPagination($items) . '</div>';
 			$button = $this->renderInputButton($buttonOptions);
 		}
 
 		$out = $this->renderMenu() .
-			'<div id="ms_profiles_wrapper" class="InputfieldContent ms_form_wrapper">' .
+			'<div id="sm_profiles_wrapper" class="InputfieldContent sm_form_wrapper">' .
 				$errors .
-				'<form method="post" action="./" id="ms_profiles_form">' .
+				'<form method="post" action="./" id="sm_profiles_form">' .
 					$out . 
 					$button .
 					$this->renderToken() .// CSRF
@@ -428,28 +429,28 @@ class MultiSitesRender extends ProcessMultiSites {
 
 		## prepare variables
 		$out = '';
-		$prefix = 'ms_items_action_selected';
+		$prefix = 'sm_itesm_action_selected';
 		$noProfileSummary = $this->_('This profile has no summary');		
 		
 		// profile rows
 		foreach ($siteProfiles as $p) {
-			$file = $p->multi_sites_files->first();
-			$sp = $this->msUtilities->getSettingsObject($p->multi_sites_settings);
-			$compatibility = $this->msUtilities->compatibilityConvert($sp->compatibility);
+			$file = $p->sites_manager_files->first();
+			$sp = $this->smUtilities->getSettingsObject($p->sites_manager_settings);
+			$compatibility = $this->smUtilities->compatibilityConvert($sp->compatibility);
 
 			if($p->is(Page::statusLocked)) $editText = $this->renderLockedForEdits($p);
 			else {
 				$editURLText = $this->_('edit');
 				$url = $this->wire('page')->url . 'upload/' . $p->id . '/?modal=1';
-				$editURL = 	'<a href="'.$url.'" class="ms_edit_profile pw-modal-medium pw-modal">' . $editURLText .	'</a>';
-				$editText = ' <small class="ms_edit">('. $editURL .')</small>';
+				$editURL = 	'<a href="'.$url.'" class="sm_edit_profile pw-modal-medium pw-modal">' . $editURLText .	'</a>';
+				$editText = ' <small class="sm_edit">('. $editURL .')</small>';
 			}			
 
-			$out .= '<div class="ms_profiles">' . 
+			$out .= '<div class="sm_profiles">' . 
 					$this->renderInputCheckbox(array('','checkbox',$prefix.'[]','',$p->id,'mode'=>'multiple','id'=>$prefix.'_'.$p->id)) .
 					'<h2>'. $p->title.'</h2>' .
 					$editText .
-					'<p class="ms_profile_summary">' . (strlen($sp->summary) ? $sp->summary : $noProfileSummary) . '</p>' .
+					'<p class="sm_profile_summary">' . (strlen($sp->summary) ? $sp->summary : $noProfileSummary) . '</p>' .
 					'<span>'. sprintf(__('File: %1$s (%2$s)'), $file->basename, $file->filesizeStr) . '</span>' .
 					'<span>'. sprintf(__('Compatibility: %s'), $compatibility) . '</span>' .
 					'<span>'. sprintf(__('Modified: %s'), date('d F Y', $p->modified)) . '</span>' .
@@ -471,9 +472,9 @@ class MultiSitesRender extends ProcessMultiSites {
 
 		## catch posts
 		$post = $this->wire('input')->post;
-		if($post->ms_upload_btn || $post->ms_edit_profile_btn || $post->ms_upload_and_view_btn) {
-			$actionType = $post->ms_edit_profile_btn ? 'edit_profile' : 'upload';
-			$this->msActions->actionItems($actionType, $post);
+		if($post->sm_upload_btn || $post->sm_edit_profile_btn || $post->sm_upload_and_view_btn) {
+			$actionType = $post->sm_edit_profile_btn ? 'edit_profile' : 'upload';
+			$this->smActions->actionItems($actionType, $post);
 		}
 
 		## prepare variables
@@ -485,7 +486,7 @@ class MultiSitesRender extends ProcessMultiSites {
 		$extraProfileFileText = '';
 		$compatibility = '';
 		$editingProfile = false;
-		$clientSideValidationOptions = array('', 'hidden', 'ms_confirm', '', 0);
+		$clientSideValidationOptions = array('', 'hidden', 'sm_confirm', '', 0);
 
 		# check if editing
 		$editProfileID = (int) $this->urlSeg2;
@@ -497,10 +498,10 @@ class MultiSitesRender extends ProcessMultiSites {
 				$editingProfile = true;
 				$profileTitle = $editProfile->title;
 
-				$out .= '<h2 class="ms_edit">'.$this->_('Edit Profile').': ' . $profileTitle . '</h2>';
+				$out .= '<h2 class="sm_edit">'.$this->_('Edit Profile').': ' . $profileTitle . '</h2>';
 
-				$file = $editProfile->multi_sites_files->first();
-				$sp = $this->msUtilities->getSettingsObject($editProfile->multi_sites_settings);
+				$file = $editProfile->sites_manager_files->first();
+				$sp = $this->smUtilities->getSettingsObject($editProfile->sites_manager_settings);
 				$compatibility = $sp->compatibility;
 				$profileSummary = $sp->summary;
 				$profileCompatibility = $sp->compatibility;
@@ -511,7 +512,7 @@ class MultiSitesRender extends ProcessMultiSites {
 		}
 
 		$profileUploadNotice =
-			'<div id="ms_notice">' .
+			'<div id="sm_notice">' .
 				'<p>' . $this->_("Use this form to upload site profiles. A site profile file must be a compressed zip file. The zip file must be named as 'site-xxx.zip' where 'xxx' is the name of the profile, for instance, 'site-default' or 'site-custom'.") . '</p>' .
 				'<p>' . $this->_("The zip file must contain a single top directory named identically to the file. For instance, for a profile file named 'site-default.zip', the top directory must be named 'site-default'. The directory structure inside the top directory must match the structure ProcessWire expects. Please see the site profiles that ship with ProcessWire installs if you are unsure.") . '</p>' .
 				'<p>' . $this->_("Please note that the wire folder is not needed at all. Please remove it from your site profile if present.") . '</p>' .
@@ -519,18 +520,18 @@ class MultiSitesRender extends ProcessMultiSites {
 
 		$options = array(
 			'profile_title' => array($this->_('Profile Title'), 
-				'text', 'ms_upload_profile_title',
+				'text', 'sm_upload_profile_title',
 				$this->_('This title will appear in the select dropdown for profiles when choosing a profile to install'),
 				$profileTitle
 			),
 			'profile_summary' => array($this->_('Profile Description'), 
-				'textarea', 'ms_upload_profile_summary',
+				'textarea', 'sm_upload_profile_summary',
 				$this->_("This is an optional short description/summary of the profile. It serves as a quick reminder what a profile contains when browsing the list of uploaded profiles."),
 				$profileSummary
 			),
 
 			'profile_compatibility' => array($this->_('Profile Compatibility'), 
-				'radio', 'ms_upload_profile_compatibility',
+				'radio', 'sm_upload_profile_compatibility',
 				$this->_("Indicate what ProcessWire version the site profile you are uploading is compatible with. Normally, a ProcessWire 2.7 profile should be also work in a ProcessWire 3.x site."),
 				array(1=>'2.7', 2=>'2.8', 3=>'3.x'),
 				'checked' => $compatibility
@@ -538,14 +539,14 @@ class MultiSitesRender extends ProcessMultiSites {
 		);
 
 		$fileOptions = array($this->_('Profile File'), 
-			'file', 'ms_upload_profile_file',
+			'file', 'sm_upload_profile_file',
 			$this->_("Upload a single site profile. It must be a zip file named as 'site-xxx' where 'xxx' is the name of the profile. For instance, 'site-custom' or 'site-default'.") . $extraProfileFileText
 		);
 
-		$editProfileHiddenOptions = array('', 'hidden', 'ms_edit_profile', '', $editProfileID);
+		$editProfileHiddenOptions = array('', 'hidden', 'sm_edit_profile', '', $editProfileID);
 
 		$buttonSaveAndViewOptions = array(
-			'idName' => 'ms_upload_and_view_btn',
+			'idName' => 'sm_upload_and_view_btn',
 			'classes' => 'ui-priority-secondary',
 			'value' => $this->_('Save & View Profiles'),
 			'clone' => 0
@@ -554,28 +555,28 @@ class MultiSitesRender extends ProcessMultiSites {
 		$buttonValue = $this->_('Save');
 		if(!$editingProfile) {
 			// button
-			$idName = 'ms_upload_btn';
+			$idName = 'sm_upload_btn';
 			$buttonClone = 1;
 			$buttonSaveAndView = $this->renderInputButton($buttonSaveAndViewOptions);
 			// back links
 			$menu = $this->renderBackLink();
 			// form
-			$class = 'ms_new_profile';
+			$class = 'sm_new_profile';
 		}
 		else {
 			// button
-			$idName = 'ms_edit_profile_btn';
+			$idName = 'sm_edit_profile_btn';
 			$buttonClone = 0;
 			$buttonSaveAndView = '';
 			// menu`
 			$menu = '';
 			// form
-			$class = 'ms_edit_profile';
+			$class = 'sm_edit_profile';
 		}		
 
 		$buttonOptions = array(
 			'idName' => $idName,
-			//'classes' => 'ms_upload_execute',
+			//'classes' => 'sm_upload_execute',
 			'value' => $buttonValue,
 			'clone' => $buttonClone			
 		);
@@ -583,11 +584,11 @@ class MultiSitesRender extends ProcessMultiSites {
 		## populate $out
 		$out .= $menu;	// @note: back link only here
 		
-		$out .= '<div id="ms_profile_upload_wrapper" class="InputfieldContent ms_form_wrapper">';
-		$out .= '<form method="post" action="./" id="ms_profile_upload_form" enctype="multipart/form-data" class="'.$class.'">';
+		$out .= '<div id="sm_profile_upload_wrapper" class="InputfieldContent sm_form_wrapper">';
+		$out .= '<form method="post" action="./" id="sm_profile_upload_form" enctype="multipart/form-data" class="'.$class.'">';
 		$out .= (!$editingProfile ? $profileUploadNotice : '');
 
-		$out .= '<div id="ms_profile_upload">';
+		$out .= '<div id="sm_profile_upload">';
 		foreach($options as $key => $value) {
 			$out .=	 $this->getInput($value) .
 					'<p class="notes">'.$value[3].'</p>';
@@ -605,7 +606,7 @@ class MultiSitesRender extends ProcessMultiSites {
 				'</form>' .
 				$this->renderPopupUploadValidation();
 
-		$out .= '</div>';// END div#ms_profile_upload_wrapper
+		$out .= '</div>';// END div#sm_profile_upload_wrapper
 		
 		return $out;
 
@@ -627,9 +628,9 @@ class MultiSitesRender extends ProcessMultiSites {
 		
 		## catch posts
 		$post = $this->wire('input')->post;
-		if($post->ms_configs_btn) {
+		if($post->sm_configs_btn) {
 			$actionType = 'configs';
-			$this->msActions->actionItems($actionType, $post);
+			$this->smActions->actionItems($actionType, $post);
 		}
 		
 		## prepare variables
@@ -638,13 +639,13 @@ class MultiSitesRender extends ProcessMultiSites {
 		$popupTitle = $this->_('Action Config');
 		$button = '';
 		$buttonOptions = array(
-			'idName' => 'ms_configs_btn',
-			'classes' => 'ms_bulk_action_btn',
+			'idName' => 'sm_configs_btn',
+			'classes' => 'sm_bulk_action_btn',
 			'value' => $this->_('Execute')
 		);
 
-		$selector = "template=multi-sites-install-configuration,parent.name=multi-sites-install-configurations,limit={$this->showLimit}";
-		$items = $this->msUtilities->getItems($selector);
+		$selector = "template=sites-manager-install-configuration,parent.name=sites-manager-install-configurations,limit={$this->showLimit}";
+		$items = $this->smUtilities->getItems($selector);
 
 		$actions = array(
 			'select' => $this->_('Actions (checked items)'),// @note: this is set as the initial value
@@ -654,7 +655,7 @@ class MultiSitesRender extends ProcessMultiSites {
 			'delete' => $this->_('Delete Configuration'),
 		);
 
-		$selectOptions = array('','select', 'ms_items_action_select', '', $actions);
+		$selectOptions = array('','select', 'sm_itesm_action_select', '', $actions);
 		
 		## populate $out
 		if(!$items->count) {
@@ -668,14 +669,14 @@ class MultiSitesRender extends ProcessMultiSites {
 			$out .= $this->renderHeadlineStrip($items) .
 					$this->renderTopActionStrip($items, $selectOptions) .
 					$this->renderSitesConfigsList($items) .			
-					'<div id="ms_bottom_pagination">' . $this->renderPagination($items) . '</div>';
+					'<div id="sm_bottom_pagination">' . $this->renderPagination($items) . '</div>';
 			$button = $this->renderInputButton($buttonOptions);
 		}
 
 		$out = $this->renderMenu() .
-			'<div id="ms_configs_wrapper" class="InputfieldContent ms_form_wrapper">' .
+			'<div id="sm_configs_wrapper" class="InputfieldContent sm_form_wrapper">' .
 				$errors .
-				'<form method="post" action="./" id="ms_configs_form">' .
+				'<form method="post" action="./" id="sm_configs_form">' .
 					$out . 
 					$button .
 					$this->renderToken() .// CSRF
@@ -700,20 +701,20 @@ class MultiSitesRender extends ProcessMultiSites {
 		
 		## prepare variables
 		$out = '';
-		$prefix = 'ms_items_action_selected';
+		$prefix = 'sm_itesm_action_selected';
 		$noConfigSummary = $this->_('This install configuration has no summary');
 		
 		// profile rows
 		foreach ($siteConfigs as $p) {
-			$sc = $this->msUtilities->getSettingsObject($p->multi_sites_settings);
+			$sc = $this->smUtilities->getSettingsObject($p->sites_manager_settings);
 			$profile = '';
 
 			if($p->is(Page::statusLocked)) $editText = $this->renderLockedForEdits($p);
 			else {
 				$editURLText = $this->_('edit');
 				$url = $this->wire('page')->url . 'config/' . $p->id . '/?modal=1';
-				$editURL = 	'<a href="'.$url.'" class="ms_edit_config pw-modal-medium pw-modal">' . $editURLText .	'</a>';
-				$editText = ' <small class="ms_edit">('. $editURL .')</small>';
+				$editURL = 	'<a href="'.$url.'" class="sm_edit_config pw-modal-medium pw-modal">' . $editURLText .	'</a>';
+				$editText = ' <small class="sm_edit">('. $editURL .')</small>';
 			}
 			
 			// profile page
@@ -723,18 +724,18 @@ class MultiSitesRender extends ProcessMultiSites {
 			}
 
 			// timezone by name
-			$timezone = $this->msUtilities->getTimeZones($sc->timezone);
+			$timezone = $this->smUtilities->getTimeZones($sc->timezone);
 
-			$out .= '<div class="ms_configs">' . 
+			$out .= '<div class="sm_configs">' . 
 						$this->renderInputCheckbox(array('','checkbox',$prefix.'[]','',$p->id,'mode'=>'multiple','id'=>$prefix.'_'.$p->id)) .
 						'<h2>'. $p->title.'</h2>' .
 						$editText .
-						'<p class="ms_config_summary">' . (strlen($sc->summary) ? $sc->summary : $noConfigSummary) . '</p>' .
+						'<p class="sm_config_summary">' . (strlen($sc->summary) ? $sc->summary : $noConfigSummary) . '</p>' .
 						// saved values: site @note: some need converting from IDs
 						'<span>'. sprintf(__('Profile: %s'), $profile) . '</span>' .	
 						'<span>'. sprintf(__('Admin Theme: %s'), $this->adminThemes[$sc->adminTheme]) . '</span>' .
 						'<span>'. sprintf(__('Colour Theme: %s'), ucfirst($this->colours[$sc->colourTheme])) . '</span>' .
-						'<span>'. sprintf(__('Time Zone: %s.'), $timezone) . '</span>' .
+						'<span>'. sprintf(__('Time Zone: %s'), $timezone) . '</span>' .
 						// saved values: database
 						'<span>'. sprintf(__('Database User: %s'), $sc->dbUser) . '</span>' .// @todo?
 						'<span>'. sprintf(__('Database Host: %s'), $sc->dbHost) . '</span>' .// -DITTO-
@@ -764,16 +765,16 @@ class MultiSitesRender extends ProcessMultiSites {
 	
 		## catch posts
 		$post = $this->wire('input')->post;
-		if($post->ms_config_add_btn || $post->ms_edit_config_btn || $post->ms_config_add_and_view_btn) {
-			$actionType = $post->ms_edit_config_btn ? 'edit_config' : 'config';
-			$this->msActions->actionItems($actionType, $post);
+		if($post->sm_config_add_btn || $post->sm_edit_config_btn || $post->sm_config_add_and_view_btn) {
+			$actionType = $post->sm_edit_config_btn ? 'edit_config' : 'config';
+			$this->smActions->actionItems($actionType, $post);
 		}
 
 		## prepare variables
 		$out = '';	
 		$this->configTitle = '';
 		$editingConfig = false;
-		$clientSideValidationOptions = array('', 'hidden', 'ms_confirm', '', 0);
+		$clientSideValidationOptions = array('', 'hidden', 'sm_confirm', '', 0);
 		$timezoneID = '';
 
 		# check if editing
@@ -784,18 +785,18 @@ class MultiSitesRender extends ProcessMultiSites {
 			if($editConfig->id && $editConfig->id > 0) {
 				$editingConfig = true;
 				$this->configTitle = $editConfig->title;
-				$out .= '<h2 class="ms_edit">'.$this->_('Edit Configuration').': ' . $this->configTitle . '</h2>';
-				$this->siteInstallConfigs = $this->msUtilities->getSettingsObject($editConfig->multi_sites_settings);
+				$out .= '<h2 class="sm_edit">'.$this->_('Edit Configuration').': ' . $this->configTitle . '</h2>';
+				$this->siteInstallConfigs = $this->smUtilities->getSettingsObject($editConfig->sites_manager_settings);
 				$timezoneID = $this->siteInstallConfigs->timezone;
 			}
 		}
 
-		$timeZoneHiddenOptions = array('', 'hidden', 'ms_timezone_id', '', $timezoneID);
-		$editConfigHiddenOptions = array('', 'hidden', 'ms_edit_config', '', $editConfigID);
+		$timeZoneHiddenOptions = array('', 'hidden', 'sm_timezone_id', '', $timezoneID);
+		$editConfigHiddenOptions = array('', 'hidden', 'sm_edit_config', '', $editConfigID);
 		$editConfigHidden = $editingConfig ? $this->renderInputHidden($editConfigHiddenOptions) : '';
 
 		$buttonSaveAndViewOptions = array(
-			'idName' => 'ms_config_add_and_view_btn',
+			'idName' => 'sm_config_add_and_view_btn',
 			'classes' => 'ui-priority-secondary',
 			'value' => $this->_('Save & View Configurations'),
 			'clone' => 0
@@ -804,23 +805,23 @@ class MultiSitesRender extends ProcessMultiSites {
 		$buttonValue = $this->_('Save');
 		if(!$editingConfig) {
 			// button
-			$idName = 'ms_config_add_btn';
+			$idName = 'sm_config_add_btn';
 			$buttonClone = 1;
 			$buttonSaveAndView = $this->renderInputButton($buttonSaveAndViewOptions);
 			// backlink to configs list
 			$backLink = $this->renderBackLink();
 			// class for form to for configs edit vs non-editing mode 
-			$class = 'ms_new_configuration';
+			$class = 'sm_new_configuration';
 		}
 		else {
 			// button
-			$idName = 'ms_edit_config_btn';
+			$idName = 'sm_edit_config_btn';
 			$buttonClone = 0;
 			$buttonSaveAndView = '';
 			// no back link here
 			$backLink = '';
 			// class for form to for configs edit vs non-editing mode 
-			$class = 'ms_edit_configuration';
+			$class = 'sm_edit_configuration';
 		}		
 
 		$buttonOptions = array(
@@ -832,8 +833,8 @@ class MultiSitesRender extends ProcessMultiSites {
 		## populate $out
 		$out .= $backLink;// @note: back link only here
 		
-		$out .= '<div id="ms_config_add_wrapper" class="InputfieldContent ms_form_wrapper">' .
-					'<form method="post" action="./" id="ms_config_add_form" enctype="multipart/form-data" class="'.$class.'">' .
+		$out .= '<div id="sm_config_add_wrapper" class="InputfieldContent sm_form_wrapper">' .
+					'<form method="post" action="./" id="sm_config_add_form" enctype="multipart/form-data" class="'.$class.'">' .
 						// add/create install config form
 						$this->renderAddConfigForm($editingConfig) .
 						$this->renderInputHidden($timeZoneHiddenOptions) .
@@ -847,7 +848,7 @@ class MultiSitesRender extends ProcessMultiSites {
 					$this->renderTimeZonesScript() .
 					$this->renderPopupCreateSite() .
 
-				'</div>';// END div#ms_config_add_wrapper
+				'</div>';// END div#sm_config_add_wrapper
 		
 		return $out;
 
@@ -866,30 +867,30 @@ class MultiSitesRender extends ProcessMultiSites {
 		## prepare variables
 		$configSummary = '';		
 		$configAddNotice =
-		'<div id="ms_notice">' .
+		'<div id="sm_notice">' .
 			'<p>' . 
 				$this->_("Use this form to add site install configurations. All fields are required.").
 			'</p>' .
 		'</div>';
 
 		// get form sections options
-		$sitesArray = $this->msUtilities->getSiteOptions('site');
-		$databaseArray = $this->msUtilities->getSiteOptions('database');
-		$superUserArray = $this->msUtilities->getSiteOptions('superuser');
-		$filePermissionsArray = $this->msUtilities->getSiteOptions('file_permissions');
+		$sitesArray = $this->smUtilities->getSiteOptions('site');
+		$databaseArray = $this->smUtilities->getSiteOptions('database');
+		$superUserArray = $this->smUtilities->getSiteOptions('superuser');
+		$filePermissionsArray = $this->smUtilities->getSiteOptions('file_permissions');
 
 		// @note: not all settings are applicable to this form compared to create form for sites
 		// ...so, we remove them
 		$sitesAllowed = array('site', 1,2,10,12,13,14);// keys of items to keep
-		$sitesArray = $this->msUtilities->arrayIntersectKey($sitesArray, $sitesAllowed);
+		$sitesArray = $this->smUtilities->arrayIntersectKey($sitesArray, $sitesAllowed);
 		$sitesArray[1][3] = $this->_('This title will appear in the select dropdown for install configurations when choosing a configuration to install');
 		$sitesArray[2][3] = $this->_("This is an optional short description/summary of the install configuration. It serves as a quick reminder what an install configuration contains when browsing the list of install configurations.");
 
 		$databaseAllowed = array('database',2,4,5);// keys of items to keep
-		$databaseArray = $this->msUtilities->arrayIntersectKey($databaseArray, $databaseAllowed);
+		$databaseArray = $this->smUtilities->arrayIntersectKey($databaseArray, $databaseAllowed);
 
 		$superUserAllowed = array('superuser',1,4);// keys of items to keep
-		$superUserArray = $this->msUtilities->arrayIntersectKey($superUserArray, $superUserAllowed);
+		$superUserArray = $this->smUtilities->arrayIntersectKey($superUserArray, $superUserAllowed);
 
 		// if editing, show saved values
 		if($editingConfig) {
@@ -902,7 +903,7 @@ class MultiSitesRender extends ProcessMultiSites {
 			$sitesArray[12]['selected'] = $configs->adminTheme;// admin theme
 			$sitesArray[13]['selected'] = $configs->colourTheme;// colour
 			// timezone by name
-			$timezone = $this->msUtilities->getTimeZones($configs->timezone);
+			$timezone = $this->smUtilities->getTimeZones($configs->timezone);
 			$sitesArray[14][4]= $timezone;// timezone
 			// saved values: database
 			$databaseArray[2][4] = $configs->dbUser;// db user
@@ -919,7 +920,7 @@ class MultiSitesRender extends ProcessMultiSites {
 		}
 		
 		## populate $out
-		$out =	'<div id="ms_config_add_form_inputs_wrapper">' .		
+		$out =	'<div id="sm_config_add_form_inputs_wrapper">' .		
 					(!$editingConfig ? $configAddNotice : '') .
 					$this->renderCreateFormSections($sitesArray) .
 					$this->renderCreateFormSections($databaseArray) .
@@ -945,24 +946,23 @@ class MultiSitesRender extends ProcessMultiSites {
 
 		## catch posts
 		$post = $this->wire('input')->post;
-		if($post->ms_processwire_versions_btn) {
+		if($post->sm_processwire_versions_btn) {
 			$actionType = 'versions';
-			$this->msActions->actionItems($actionType, $post);
+			$this->smActions->actionItems($actionType, $post);
 		}
 		
 		## prepare variables
 		$out = '';
-		$errors = '';
 		$popupTitle = $this->_('Action ProcessWire Version');
 		$button = '';
 		$buttonOptions = array(
-			'idName' => 'ms_processwire_versions_btn',
-			'classes' => 'ms_bulk_action_btn',
+			'idName' => 'sm_processwire_versions_btn',
+			'classes' => 'sm_bulk_action_btn',
 			'value' => $this->_('Execute')
 		);
 
-		$selector = "template=multi-sites-wire,parent.name=multi-sites-processwire-files,limit={$this->showLimit},multi_sites_files!=''"; 
-		$items = $this->msUtilities->getItems($selector);
+		$selector = "template=sites-manager-wire,parent.name=sites-manager-processwire-files,limit={$this->showLimit},sites_manager_files!=''"; 
+		$items = $this->smUtilities->getItems($selector);
 
 		$actions = array(
 			'select' => $this->_('Actions (checked items)'),// @note: this is set as the initial value
@@ -973,21 +973,22 @@ class MultiSitesRender extends ProcessMultiSites {
 			'download' => $this->_('Get Latest Version'),
 		);
 
-		$selectOptions = array('','select', 'ms_items_action_select', '', $actions);
+		$selectOptions = array('','select', 'sm_itesm_action_select', '', $actions);
+
+		
 		
 		## populate $out
 		$out .= $this->renderHeadlineStrip($items,2) .
 				$this->renderTopActionStrip($items, $selectOptions) .
 				$this->renderSpinner() .	
-				'<p id="ms_download_warning" class="notes ms_hide">'.$this->_('Please note that it may take a little while to fetch and process downloads. Please be patient and do not refresh your browser.').'</p>' .
+				'<p id="sm_download_warning" class="notes sm_hide">'.$this->_('Please note that it may take a little while to fetch and process downloads. Please be patient and do not refresh your browser.').'</p>' .
 				$this->renderProcessWireVersionsList($items) .			
-				'<div id="ms_bottom_pagination">' . $this->renderPagination($items) . '</div>';
+				'<div id="sm_bottom_pagination">' . $this->renderPagination($items) . '</div>';
 		$button = $this->renderInputButton($buttonOptions);
 
 		$out = $this->renderMenu() .
-			'<div id="ms_processwire_versions_wrapper" class="InputfieldContent ms_form_wrapper">' .
-				$errors .
-				'<form method="post" action="./" id="ms_processwire_versions_form">' .
+			'<div id="sm_processwire_versions_wrapper" class="InputfieldContent sm_form_wrapper">' .
+				'<form method="post" action="./" id="sm_processwire_versions_form">' .
 					$out . 
 					$button .
 					$this->renderToken() .// CSRF
@@ -1012,8 +1013,8 @@ class MultiSitesRender extends ProcessMultiSites {
 		
 		## prepare variables
 		$out = '';
-		$prefix = 'ms_items_action_selected';
-		$processWireVersions = $this->msUtilities->getProcessWireVersionsInfo();
+		$prefix = 'sm_itesm_action_selected';
+		$processWireVersions = $this->smUtilities->getProcessWireVersionsInfo();
 		$sanitizer = $this->wire('sanitizer');
 		
 		// processwire versions rows
@@ -1025,7 +1026,7 @@ class MultiSitesRender extends ProcessMultiSites {
 			if($version && $version->id > 0) {				
 				$editText = $version->is(Page::statusLocked) ? $this->renderLockedForEdits($version) : '';
 				$id = $version->id;
-				$file = $version->multi_sites_files->first();
+				$file = $version->sites_manager_files->first();
 				$filename = $file->basename;
 				$filesize = $file->filesizeStr;
 				$fileText = sprintf(__('File: %1$s (%2$s)'), $filename, $filesize);
@@ -1038,15 +1039,15 @@ class MultiSitesRender extends ProcessMultiSites {
 				$id = 0;
 				$fileText = $this->_('You have not downloaded this version yet. You need to do so before you can install it in a single site setup.');
 				$modified = '';
-				$notDownloadedClass = ' class="ms_red"';
+				$notDownloadedClass = ' class="sm_red"';
 			}
 
 			## populate $out			
-			$out .= '<div class="ms_processwire_versions" data-version-index="'.$index.'">' . 
+			$out .= '<div class="sm_processwire_versions" data-version-index="'.$index.'">' . 
 						$this->renderInputCheckbox(array('','checkbox',$prefix.'[]','',$id,'mode'=>'multiple','id'=>$prefix.'_'.$index)) .
 						'<h2>'. $value['title'].'</h2>' .
 						$editText .
-						'<p class="ms_processwire_version_summary">' . $value['summary'] . '</p>' .
+						'<p class="sm_processwire_version_summary">' . $value['summary'] . '</p>' .
 						'<span'. $notDownloadedClass .'>'. $fileText  . '</span>' .
 						$modified .
 					'</div>';
@@ -1067,9 +1068,9 @@ class MultiSitesRender extends ProcessMultiSites {
 
 		## catch posts
 		$post = $this->wire('input')->post;
-		if($post->ms_cleanup_btn) {
+		if($post->sm_cleanup_btn) {
 			$actionType = 'cleanup';
-			$this->msActions->actionItems($actionType, $post);
+			$this->smActions->actionItems($actionType, $post);
 		}	
 		
 		## prepare variables
@@ -1077,15 +1078,15 @@ class MultiSitesRender extends ProcessMultiSites {
 
 		$filesPath = $this->wire('config')->paths->root;		
 		$components = array(
-			'pages' => array('Multi Sites: Profiles', 'Multi Sites: Installed Sites'),
-			'fields' => array('multi_sites_settings', 'multi_sites_files'),
-			'templates' => array('multi-sites-site-profiles', 'multi-sites-site-profile', 'multi-sites-installed-sites', 'multi-sites-installed-site','multi-sites-wires','multi-sites-wire','multi-sites-install-configurations','multi-sites-install-configuration'),
-			'files' => array('ms_sites_json' => $filesPath .'sites.json', 'ms_index_config' => $filesPath .'index.config.php'),
+			'pages' => array('Sites Manager: Profiles', 'Sites Manager: Installed Sites'),
+			'fields' => array('sites_manager_settings', 'sites_manager_files'),
+			'templates' => array('sites-manager-site-profiles', 'sites-manager-site-profile', 'sites-manager-installed-sites', 'sites-manager-installed-site','sites-manager-wires','sites-manager-wire','sites-manager-install-configurations','sites-manager-install-configuration'),
+			'files' => array('sm_sites_json' => $filesPath .'sites.json', 'sm_index_config' => $filesPath .'index.config.php'),
 		);
 
 		$buttonOptions = array(
-			'idName' => 'ms_cleanup_btn',
-			'classes' => 'ms_cleanup_execute',
+			'idName' => 'sm_cleanup_btn',
+			'classes' => 'sm_cleanup_execute',
 			'value' => $this->_('Cleanup')
 		);
 
@@ -1093,16 +1094,16 @@ class MultiSitesRender extends ProcessMultiSites {
 
 		## populate $out		
 		$out .= $this->renderMenu();
-		$out .= '<div id="ms_cleanup_wrapper" class="InputfieldContent ms_form_wrapper">';
-		$out .= '<form method="post" action="./" id="ms_cleanup_form">';
-		$out .= '<div id="ms_cleanup_warning">' .
-					'<p>' . $this->_('This utility will irreversibly delete the following listed Multi Sites components and their child pages as applicable. Before proceeding, make sure that this is the action you wish to take.') . '</p>' .
+		$out .= '<div id="sm_cleanup_wrapper" class="InputfieldContent sm_form_wrapper">';
+		$out .= '<form method="post" action="./" id="sm_cleanup_form">';
+		$out .= '<div id="sm_cleanup_warning">' .
+					'<p>' . $this->_('This utility will irreversibly delete the following listed Sites Manager components and their child pages as applicable. Before proceeding, make sure that this is the action you wish to take.') . '</p>' .
 					'<p>' . $this->_('Please note that installed sites\' databases and site directories and the files in them will be left untouched.') . '</p>' .
 				'</div>';
 		
 		foreach ($components as $key => $value) {
-			$out .= '<div class="ms_cleanup_header"><h2>'.ucfirst($key).'</h2></div>';
-			$out .= '<div class="ms_cleanup_items"><ol>';
+			$out .= '<div class="sm_cleanup_header"><h2>'.ucfirst($key).'</h2></div>';
+			$out .= '<div class="sm_cleanup_items"><ol>';
 			foreach ($value as $k => $v) {
 				if('files' == $key) $out .= '<li>'. $v.'<span>'.$this->renderInputCheckbox(array($checkBoxLabel,'checkbox',$k,'',1)).'</span></li>';
 				else $out .= '<li>'. $v.'</li>';
@@ -1114,7 +1115,7 @@ class MultiSitesRender extends ProcessMultiSites {
 				$this->renderToken() .// CSRF	
 				'</form>';
 
-		$out .= '</div>';// END div#ms_cleanup_wrapper
+		$out .= '</div>';// END div#sm_cleanup_wrapper
 
 		return $out;
 
@@ -1143,10 +1144,10 @@ class MultiSitesRender extends ProcessMultiSites {
 		);
 
 		## populate $out
-		$out .= '<div id="ms_menu"><ul class="ms_menu">';
+		$out .= '<div id="sm_menu"><ul class="sm_menu">';
 
 		foreach ($menuItems as $key => $value) {
-			$on = ($this->urlSeg1 == $key) || (!$this->urlSeg1 && 'installed' == $key) ? 'ms_menu_item ms_on' : 'ms_menu_item';
+			$on = ($this->urlSeg1 == $key) || (!$this->urlSeg1 && 'installed' == $key) ? 'sm_menu_item sm_on' : 'sm_menu_item';
 			$url = 'installed' == $key ? $this->wire('page')->url : $this->wire('page')->url . $key .'/';
 			$out .= '<li><a class="' . $on . '" href="' . $url . '">' . $value . '</a></li>';
 		}
@@ -1167,7 +1168,7 @@ class MultiSitesRender extends ProcessMultiSites {
 	 */
 	private function renderLockedForEdits(Page $page) {
 		$lockedForEditsStr = $this->_('Item locked for edits');
-		$out = ($page->is(Page::statusLocked)) ? '<small class="ms_locked">'.$lockedForEditsStr.'</small>' : '';
+		$out = ($page->is(Page::statusLocked)) ? '<small class="sm_locked">'.$lockedForEditsStr.'</small>' : '';
 		return $out;
 	}
 
@@ -1184,7 +1185,7 @@ class MultiSitesRender extends ProcessMultiSites {
 		if(1 == $mode) $content = $this->renderItemsCount($items) . $this->renderCreateLink();// items dashboards (except wire)
 		elseif(2 == $mode) $content = $this->renderItemsCount($items);// wire dashboard only
 		else $content = $this->renderBackLink();// 'create/upload' contexts
-		$out = '<div id="ms_headline_strip">'. $content . '</div>';
+		$out = '<div id="sm_headline_strip">'. $content . '</div>';
 		return $out;
 	}
 
@@ -1202,8 +1203,8 @@ class MultiSitesRender extends ProcessMultiSites {
 		$start = $items->getStart()+1;
 		$end = $start + count($items)-1;
 		$total = $items->getTotal();
-		if($total) $itemsCount = '<p id="ms_items_count" class="description">' . sprintf(__('Items %1$d to %2$d of %3$d'), $start, $end, $total) . '</pn>';
-		$out = '<div id="ms_headline_items_count">' .
+		if($total) $itemsCount = '<p id="sm_itesm_count" class="description">' . sprintf(__('Items %1$d to %2$d of %3$d'), $start, $end, $total) . '</pn>';
+		$out = '<div id="sm_headline_itesm_count">' .
 					$itemsCount .
 				'</div>';
 
@@ -1219,7 +1220,7 @@ class MultiSitesRender extends ProcessMultiSites {
 	 */
 	private function renderCreateLink() {
 
-		$createLink = $this->msUtilities->setCreateLink();
+		$createLink = $this->smUtilities->setCreateLink();
 		$createLinkURLSeg = $createLink[0];
 		$createLinkText = $createLink[1];
 
@@ -1229,8 +1230,8 @@ class MultiSitesRender extends ProcessMultiSites {
 		'</a>';
 
 
-		$out = '<div id="ms_headline_create_link">' .
-					'<span id="ms_create_link">'. $link .'</span>' .
+		$out = '<div id="sm_headline_create_link">' .
+					'<span id="sm_create_link">'. $link .'</span>' .
 			'</div>';
 
 		return $out;
@@ -1246,7 +1247,7 @@ class MultiSitesRender extends ProcessMultiSites {
 	 */
 	private function renderBackLink() {
 		
-		$backLink = $this->msUtilities->setBackToItemsListLink();
+		$backLink = $this->smUtilities->setBackToItemsListLink();
 		$backLinkURLSeg = 'installed' == $backLink[0] ? '' : $backLink[0] . '/';
 		$backLinkText = $backLink[1];
 
@@ -1256,8 +1257,8 @@ class MultiSitesRender extends ProcessMultiSites {
 		'</a>';
 
 
-		$out = '<div id="ms_headline_back_link">' .
-					'<span id="ms_back_link">'. $link .'</span>' .
+		$out = '<div id="sm_headline_back_link">' .
+					'<span id="sm_back_link">'. $link .'</span>' .
 			'</div>';
 
 		return $out;
@@ -1274,12 +1275,12 @@ class MultiSitesRender extends ProcessMultiSites {
 	 *
 	 */
 	private function renderTopActionStrip($items, $options) {
-		$out = '<div id="ms_top_strip_actions">'.
-					'<div id="ms_top_action_selects">' .
-						$this->renderInputCheckbox(array('','checkbox','ms_toggle_all','',1)) .
+		$out = '<div id="sm_top_strip_actions">'.
+					'<div id="sm_top_action_selects">' .
+						$this->renderInputCheckbox(array('','checkbox','sm_toggle_all','',1)) .
 						$this->renderInputSelect($options) .  $this->renderLimitSelect() .
 					'</div>' .
-					'<div id="ms_top_pagination">' . $this->renderPagination($items) . '</div>' .
+					'<div id="sm_top_pagination">' . $this->renderPagination($items) . '</div>' .
 				'</div>';
 
 		return $out;
@@ -1317,18 +1318,18 @@ class MultiSitesRender extends ProcessMultiSites {
 	}
 
 	/**
-	 * Render notice to show Multi Sites components missing.
+	 * Render notice to show Sites Manager components missing.
 	 * 
 	 * These are fields, templates, files and pages.
 	 *
 	 * @access protected
 	 * @return string $out Markup of error message.
 	 */
-	protected function renderMultiSitesComponentsMissing() {
-		$moduleInstallURL = $this->wire('config')->urls->admin . 'module/edit?name=ProcessMultiSites';
+	protected function renderSitesManagerComponentsMissing() {
+		$moduleInstallURL = $this->wire('config')->urls->admin . 'module/edit?name=ProcessSitesManager';
 		$reinstallModuleLink = '<a href="'.$moduleInstallURL.'">' . $this->_('re-install') . '</a>';
-		$noComponentsNotice = sprintf(__('Required Multi Sites components  are missing. Please %s the module or resolve any errors that were shown during the install.'), $reinstallModuleLink);
-		$out = '<div id="ms_missing_components_wrapper" class="InputfieldContent ms_form_wrapper"><p>'.$noComponentsNotice.'</p></div>';
+		$noComponentsNotice = sprintf(__('Required Sites Manager components  are missing. Please %s the module or resolve any errors that were shown during the install.'), $reinstallModuleLink);
+		$out = '<div id="sm_missing_components_wrapper" class="InputfieldContent sm_form_wrapper"><p>'.$noComponentsNotice.'</p></div>';
 		return $out;
 	}
 
@@ -1383,7 +1384,7 @@ class MultiSitesRender extends ProcessMultiSites {
 	 */
 	private function renderInputText($options) {
 		$placeHolder = '';
-		if('ms_timezone' == $options[2]) $placeHolder = ' placeholder="'. $this->_('Start typing name of time zone...') .'"';
+		if('sm_timezone' == $options[2]) $placeHolder = ' placeholder="'. $this->_('Start typing name of time zone...') .'"';
 		
 		$value = isset($options[4]) ? $options[4] : '';
 		$out = 	'<label for="'.$options[2].'">'.$options[0].'</label>' .
@@ -1437,11 +1438,11 @@ class MultiSitesRender extends ProcessMultiSites {
 		$out = '';
 		$values = $options[4];
 		$checkedValue = isset($options['checked']) ? $options['checked'] : '';
-		$out .= '<span class="ms_radio_header">'.$options[0].'</span>';
+		$out .= '<span class="sm_radio_header">'.$options[0].'</span>';
 		foreach ($values as $value => $label) {
 			$checkedStr = $value == $checkedValue ? ' checked' : '';
 			$out .= '<input id="'.$options[2].'_'.$value.'" name="'.$options[2].'" value="'.$value.'" type="'.$options[1].'"'.$checkedStr.'>' .
-					'<label for="'.$options[2].'_'.$value.'" class="ms_radio">'.$label.'</label>';
+					'<label for="'.$options[2].'_'.$value.'" class="sm_radio">'.$label.'</label>';
 		}
 		
 		return $out;
@@ -1522,9 +1523,9 @@ class MultiSitesRender extends ProcessMultiSites {
 	 *
 	 */
 	private function renderTimeZonesScript() {
-		$timeZonesJSON = $this->msUtilities->getTimeZones();
+		$timeZonesJSON = $this->smUtilities->getTimeZones();
 		if(!$timeZonesJSON) $timeZonesJSON .= $timeZonesJSON . '"";';
-		$out = "\n\t<script type='text/javascript'>\n\tvar multiSitesTimeZonesConfig = $timeZonesJSON\n\t</script>";
+		$out = "\n\t<script type='text/javascript'>\n\tvar sitesManagerTimeZonesConfig = $timeZonesJSON\n\t</script>";
 		return $out;
 	}
 
@@ -1541,9 +1542,9 @@ class MultiSitesRender extends ProcessMultiSites {
 		
 		$popupTitle = $this->_('Upload Profile');		
 
-		$out = '<div id="ms_validation_wrapper">' .
-				'<div id="ms_validation" class="mfp-hide">' .
-					'<h2 id="ms_validation_header">'. $this->_('Please correct the following errors in order to continue').'</h2>' .
+		$out = '<div id="sm_validation_wrapper">' .
+				'<div id="sm_validation" class="mfp-hide">' .
+					'<h2 id="sm_validation_header">'. $this->_('Please correct the following errors in order to continue').'</h2>' .
 				'</div>';
 
 		$popups = array(
@@ -1551,15 +1552,15 @@ class MultiSitesRender extends ProcessMultiSites {
 			'required_fields' => $this->_('All required fields need to be completed.'),
 		);
 
-		$out .= '<div id="ms_popup_messages" class="ms_hide">';
+		$out .= '<div id="sm_popup_messages" class="sm_hide">';
 		foreach ($popups as $id => $text) {
-			$out .= '<p id="ms_'.$id.'">'.$text.'</p>';
+			$out .= '<p id="sm_'.$id.'">'.$text.'</p>';
 		}
 		
 		// hidden element for popup data
-		$out .= 	'<span id="ms_popup_data" data-popup-title="'.$popupTitle.'" data-popup-src="ms_validation"></span>' .
-					'</div>' .// END div#ms_popup_messages					
-				'</div>';// END div#ms_validation_wrapper
+		$out .= 	'<span id="sm_popup_data" data-popup-title="'.$popupTitle.'" data-popup-src="sm_validation"></span>' .
+					'</div>' .// END div#sm_popup_messages					
+				'</div>';// END div#sm_validation_wrapper
 
 		return $out;
 
@@ -1578,10 +1579,10 @@ class MultiSitesRender extends ProcessMultiSites {
 
 		$popupTitle = $this->_('Create/Install Site Validation');
 
-		$out = '<div id="ms_validation_wrapper">' .
-				'<div id="ms_validation" class="mfp-hide">' .
-					'<h2 id="ms_validation_header">'. $this->_('Please correct the following errors in order to continue').'</h2>' .
-					'<ol id="ms_validation_errors"></ol>' .
+		$out = '<div id="sm_validation_wrapper">' .
+				'<div id="sm_validation" class="mfp-hide">' .
+					'<h2 id="sm_validation_header">'. $this->_('Please correct the following errors in order to continue').'</h2>' .
+					'<ol id="sm_validation_errors"></ol>' .
 				'</div>';
 
 		$popups = array(
@@ -1602,14 +1603,14 @@ class MultiSitesRender extends ProcessMultiSites {
 
 		);
 
-		$out .= '<div id="ms_popup_messages" class="ms_hide">';
+		$out .= '<div id="sm_popup_messages" class="sm_hide">';
 
-		foreach ($popups as $id => $text) $out .= '<p id="ms_'.$id.'">'.$text.'</p>';
+		foreach ($popups as $id => $text) $out .= '<p id="sm_'.$id.'">'.$text.'</p>';
 
 		// hidden element for popup data
-		$out .= 	'<span id="ms_popup_data" data-popup-title="'.$popupTitle.'" data-popup-src="ms_validation"></span>' .
-					'</div>' .// END div#ms_popup_messages
-				'</div>';// END div#ms_validation_wrapper
+		$out .= 	'<span id="sm_popup_data" data-popup-title="'.$popupTitle.'" data-popup-src="sm_validation"></span>' .
+					'</div>' .// END div#sm_popup_messages
+				'</div>';// END div#sm_validation_wrapper
 
 		return $out;
 
@@ -1632,24 +1633,24 @@ class MultiSitesRender extends ProcessMultiSites {
 		$popupTitle2 = $this->_('Action Installed Sites');
 
 		$buttonConfirmOptions = array(
-			'idName' => 'ms_installed_sites_action_confirm_btn',
-			'classes' => 'ms_popup_btn',
+			'idName' => 'sm_installed_sites_action_confirm_btn',
+			'classes' => 'sm_popup_btn',
 			'value' => $this->_('Confirm Delete'),
 			'clone' => 0
 		);
 
 		$buttonCancelOptions = array(
-			'idName' => 'ms_installed_sites_action_cancel_btn',
-			'classes' => 'ms_popup_btn ui-priority-secondary',
+			'idName' => 'sm_installed_sites_action_cancel_btn',
+			'classes' => 'sm_popup_btn ui-priority-secondary',
 			'value' => $this->_('Cancel'),
 			'clone' => 0
 		);
 
-		$out = '<div id="ms_installed_sites_action_wrapper">' .
-				'<div id="ms_installed_sites_action_confirm" class="mfp-hide">' .
-					'<h2 id="ms_installed_sites_action_confirm_header">'. $this->_('Are you sure you want to do this? You are about to permanently delete the following directories and/or databases and selected pages').'</h2>' .
-					'<ol id="ms_installed_sites_delete_files_confirm_list"></ol>' .
-					'<ol id="ms_installed_sites_delete_databases_confirm_list"></ol>' .
+		$out = '<div id="sm_installed_sites_action_wrapper">' .
+				'<div id="sm_installed_sites_action_confirm" class="mfp-hide">' .
+					'<h2 id="sm_installed_sites_action_confirm_header">'. $this->_('Are you sure you want to do this? You are about to permanently delete the following directories and/or databases and selected pages').'</h2>' .
+					'<ol id="sm_installed_sites_delete_files_confirm_list"></ol>' .
+					'<ol id="sm_installed_sites_delete_databases_confirm_list"></ol>' .
 					$this->renderInputButton($buttonConfirmOptions) .
 					$this->renderInputButton($buttonCancelOptions) .
 				'</div>';
@@ -1662,17 +1663,17 @@ class MultiSitesRender extends ProcessMultiSites {
 			'delete_sites_databases_confirm' => $this->_('The following sites databases will be permanently deleted.'),
 		);
 
-		$out .= '<div id="ms_popup_messages" class="ms_hide">';
+		$out .= '<div id="sm_popup_messages" class="sm_hide">';
 		foreach ($popups as $id => $text) {
-			$out .= '<p id="ms_'.$id.'">'.$text.'</p>';
+			$out .= '<p id="sm_'.$id.'">'.$text.'</p>';
 		}
 		
 		// hidden element for popup data
-		$out .= 	'<span id="ms_popup_data" data-popup-title="'.$popupTitle.'" data-popup-src="ms_installed_sites_action_confirm"></span>' .				
-					'</div>' .// END div#ms_popup_messages	
+		$out .= 	'<span id="sm_popup_data" data-popup-title="'.$popupTitle.'" data-popup-src="sm_installed_sites_action_confirm"></span>' .				
+					'</div>' .// END div#sm_popup_messages	
 					$this->renderPopupNoItemsSelected($popupTitle2) .
 					$this->renderPopupNoActionSelected($popupTitle2) .
-				'</div>';// END div#ms_installed_sites_action_wrapper
+				'</div>';// END div#sm_installed_sites_action_wrapper
 
 		return $out;
 
@@ -1687,11 +1688,11 @@ class MultiSitesRender extends ProcessMultiSites {
 	 */
 	private function renderPopupNoItemsSelected($popupTitle) {
 		$out = 
-			'<span id="ms_no_items_popup_data" data-popup-title="'.$popupTitle.'" data-popup-src="ms_no_item_selected"></span>' .		
-			'<div id="ms_no_item_selected_wrapper">' .
-			'<div id="ms_no_item_selected" class="mfp-hide">' .
-				'<h2 id="ms_no_item_selected_header">'. $this->_('Please correct the following errors in order to continue').'</h2>' .
-				'<p class="ms_error">'.$this->_('You need to select at least one item to action.').'</p>' .
+			'<span id="sm_no_itesm_popup_data" data-popup-title="'.$popupTitle.'" data-popup-src="sm_no_item_selected"></span>' .		
+			'<div id="sm_no_item_selected_wrapper">' .
+			'<div id="sm_no_item_selected" class="mfp-hide">' .
+				'<h2 id="sm_no_item_selected_header">'. $this->_('Please correct the following errors in order to continue').'</h2>' .
+				'<p class="sm_error">'.$this->_('You need to select at least one item to action.').'</p>' .
 			'</div>';
 		return $out;
 	}
@@ -1705,11 +1706,11 @@ class MultiSitesRender extends ProcessMultiSites {
 	 */
 	private function renderPopupNoActionSelected($popupTitle) {
 		$out = 
-			'<span id="ms_no_action_popup_data" data-popup-title="'.$popupTitle.'" data-popup-src="ms_no_action_selected"></span>' .		
-			'<div id="ms_no_action_selected_wrapper">' .
-			'<div id="ms_no_action_selected" class="mfp-hide">' .
-				'<h2 id="ms_no_action_selected_header">'. $this->_('Please correct the following errors in order to continue').'</h2>' .
-				'<p class="ms_error">'.$this->_('You need to select an action to apply to selected items.').'</p>' .
+			'<span id="sm_no_action_popup_data" data-popup-title="'.$popupTitle.'" data-popup-src="sm_no_action_selected"></span>' .		
+			'<div id="sm_no_action_selected_wrapper">' .
+			'<div id="sm_no_action_selected" class="mfp-hide">' .
+				'<h2 id="sm_no_action_selected_header">'. $this->_('Please correct the following errors in order to continue').'</h2>' .
+				'<p class="sm_error">'.$this->_('You need to select an action to apply to selected items.').'</p>' .
 			'</div>';
 		return $out;
 	}
@@ -1723,9 +1724,9 @@ class MultiSitesRender extends ProcessMultiSites {
 	 *
 	 */
 	private function renderSpinner() {
-		$out = '<div id="ms_spinner_wrapper">'.
-					'<span id="ms_spinner" class="ms_spinner">' .
-						'<i class="fa fa-lg fa-spin fa-spinner ms_spinner ms_hide"></i>' . 
+		$out = '<div id="sm_spinner_wrapper">'.
+					'<span id="sm_spinner" class="sm_spinner">' .
+						'<i class="fa fa-lg fa-spin fa-spinner sm_spinner sm_hide"></i>' . 
 					'</span>' .
 				'</div>';
 		return $out;
@@ -1760,7 +1761,5 @@ class MultiSitesRender extends ProcessMultiSites {
 		return $icon;
 
 	}
-
-
 
 }

@@ -1,6 +1,6 @@
 /**
  *
- * Javascript file for the ProcessWire Module Multi Sites (Process)
+ * Javascript file for the ProcessWire Module Sites manager (Process)
  *
  * @author Francis Otieno (Kongondo)
  *
@@ -11,7 +11,7 @@
 /**
  * Get all time zones and their values to populate autocomplete.
  *
- * We get the values from a JS Object that was set in MultisitesRender::renderTimeZonesScript.
+ * We get the values from a JS Object that was set in SitesManagerRender::renderTimeZonesScript.
  * This is used by timeZonesAutocomplete() in single edit variations congiguration.
  *
  * @return Array timeZones Contains indexed array of time zones and their respective values.
@@ -20,7 +20,7 @@
 function getTimezones() {
 	var timeZones = {};
 	// check if time zones values object is loaded
-	if (typeof multiSitesTimeZonesConfig == 'object') timeZones = multiSitesTimeZonesConfig;
+	if (typeof sitesManagerTimeZonesConfig == 'object') timeZones = sitesManagerTimeZonesConfig;
 	return timeZones;
 }
 
@@ -42,7 +42,7 @@ function timeZonesAutocomplete(i) {
 		//minLength: , @note: just in case needed in the future
 		select: function (event, ui) {// @note: called on select value in autocomplete
             var selectedTimeZoneID = $.inArray(ui.item.value, k);
-            $('input#ms_timezone_id').val(selectedTimeZoneID)
+            $('input#sm_timezone_id').val(selectedTimeZoneID)
 		}, 
 		response: function(event, ui) {// @note: check if content found
             // ui.content is the array that's about to be sent to the response callback.
@@ -92,7 +92,7 @@ function initPopup(elem) {
 			open: function () {
                 var magnific = this;
                 // cancel button
-                $('div#ms_installed_sites_action_confirm').on('click', 'button#ms_installed_sites_action_cancel_btn', function (e) {
+                $('div#sm_installed_sites_action_confirm').on('click', 'button#sm_installed_sites_action_cancel_btn', function (e) {
                     clearDeleteList();
                     magnific.close();
                 })
@@ -100,7 +100,7 @@ function initPopup(elem) {
 			}// END open: callback
 		},
 		closeMarkup: closeMarkup,		
-		mainClass: 'ms_popups',
+		mainClass: 'sm_popups',
 		//alignTop: true,
 		//enableEscapeKey: false,
 		showCloseBtn: true,
@@ -118,11 +118,11 @@ function requiredBackgroundColor(i) {
     // apply background color to empty required inputs
     i.filter(function () {
         return $.trim(this.value) === '';
-    }).addClass('ms_required');
+    }).addClass('sm_required');
     // detect input changes on required fields and remove class for background-color if input not empty
     i.on('input', function() {
-        if($(this).val() == '') $(this).addClass('ms_required')
-        else $(this).removeClass('ms_required')
+        if($(this).val() == '') $(this).addClass('sm_required')
+        else $(this).removeClass('sm_required')
     });
 
 }
@@ -135,7 +135,7 @@ function requiredBackgroundColor(i) {
  *
  */
 function getcloseMarkup(title) {
-    var out = title ? '<div id="ms_popups_close" class="NoticeError ui-helper-clearfix"><span id="ms_popup_title">' + title + '</span><span class="mfp-close">&#215;</span></div>' : '';
+    var out = title ? '<div id="sm_popups_close" class="NoticeError ui-helper-clearfix"><span id="sm_popup_title">' + title + '</span><span class="mfp-close">&#215;</span></div>' : '';
     return out;
 }
 
@@ -144,8 +144,9 @@ function getcloseMarkup(title) {
 /**
  * 
  * 
- * @param {any} form 
- * @returns 
+ * @param Object form The form to validate.
+ * @returns Object valid Object with feedback info if form did not validate.
+ *
  */
 function validateForm(form) {    
     var valid = {};// JS Object
@@ -162,23 +163,24 @@ function validateForm(form) {
 /**
  * 
  * 
- * @param {any} form 
- * @param {any} valid 
- * @returns 
+ * @param Object form The form to validate.
+ * @param Object valid For user feedback if form did not validate.
+ * @returns Object valid Object with feedback info if form did not validate.
+ *
  */
 function validateRequieredFields(form, valid) {
-    var inputs = form.find('input, select, textarea#ms_create_copy_paste').not('input#ms_timezone_id,input#ms_confirm');
+    var inputs = form.find('input, select, textarea#sm_create_copy_paste').not('input#sm_timezone_id,input#sm_confirm');
     inputs.each(function () {
         var i = ($(this));
         var val = i.val();
-        var hiddenParent = i.closest('div.ms_hide');
+        var hiddenParent = i.closest('div.sm_hide');
         if (hiddenParent.length) return;
         if (0 == val) {
             valid.errors = 1;
             return false;
         }
     });
-    var notice = $('p#ms_required_fields').text();
+    var notice = $('p#sm_required_fields').text();
     valid.notices.push(notice);
     return valid;
 }
@@ -186,36 +188,37 @@ function validateRequieredFields(form, valid) {
 /**
  * 
  * 
- * @param {any} form 
- * @param {any} valid 
- * @returns 
+ * @param Object form The form to validate.
+ * @param Object valid For user feedback if form did not validate.
+ * @returns Object valid Object with feedback info if form did not validate.
+ *
  */
 function validateAdminName(form, valid) {
 
-    var admin = form.find('input#ms_admin_url');
-    var hiddenParent = admin.closest('div.ms_hide');
+    var admin = form.find('input#sm_admin_url');
+    var hiddenParent = admin.closest('div.sm_hide');
     if(hiddenParent.length) return valid;
-    //var adminName = form.find('input#ms_admin_url').val();
+    //var adminName = form.find('input#sm_admin_url').val();
     var adminName = admin.val();
 
     // admin name disallowed ('wire' and 'site')
     if (adminName == 'wire' || adminName == 'site') {
         valid.errors = 1;
-        var notice = $('p#ms_admin_name_disallowed').text();
+        var notice = $('p#sm_admin_name_disallowed').text();
         valid.notices.push(notice);
     }
 
     // admin name too short [shoudl be at least 2 char]
     if (admin.length && adminName.length < 2) {
         valid.errors = 1;
-        var notice = $('p#ms_admin_name_short').text();
+        var notice = $('p#sm_admin_name_short').text();
         valid.notices.push(notice);
     }
 
     // admin name disallowed characters [a-z 0-9]
     if (!validateCharacters(adminName)) {
         valid.errors = 1;
-        var notice = $('p#ms_admin_name_characters_disallowed').text();
+        var notice = $('p#sm_admin_name_characters_disallowed').text();
         valid.notices.push(notice);
     }
 
@@ -225,60 +228,61 @@ function validateAdminName(form, valid) {
 /**
  * 
  * 
- * @param {any} form 
- * @param {any} valid 
- * @returns 
+ * @param Object form The form to validate.
+ * @param Object valid For user feedback if form did not validate.
+ * @returns Object valid Object with feedback info if form did not validate.
+ *
  */
 function validateSuperUser(form, valid) {
 
-    var name = form.find('input#ms_superuser_name');
-    var password = form.find('input#ms_superuser_pass');
-    var passwordConfirm = form.find('input#ms_superuser_pass_confirm');
-    var email = form.find('input#ms_superuser_email');
+    var name = form.find('input#sm_superuser_name');
+    var password = form.find('input#sm_superuser_pass');
+    var passwordConfirm = form.find('input#sm_superuser_pass_confirm');
+    var email = form.find('input#sm_superuser_email');
 
     var superUserName = name.val();
     var superUserPassword = password.val();
     var superUserPasswordConfirm = passwordConfirm.val();
     var superUserEmail = email.val();
 
-    var hiddenParentName = name.closest('div.ms_hide');    
+    var hiddenParentName = name.closest('div.sm_hide');    
     if (!hiddenParentName.length) {
         // superuser name disallowed characters [a-z 0-9]
         if (!validateCharacters(superUserName)) {
             valid.errors = 1;
-            var notice = $('p#ms_superuser_name_characters_disallowed').text();
+            var notice = $('p#sm_superuser_name_characters_disallowed').text();
             valid.notices.push(notice);
         }
         // superuser name too short
         if (superUserName.length < 2) {
             valid.errors = 1;
-            var notice = $('p#ms_superuser_name_short').text();
+            var notice = $('p#sm_superuser_name_short').text();
             valid.notices.push(notice);
         } 
     }
     
-    var hiddenParentPassword = password.closest('div.ms_hide');
+    var hiddenParentPassword = password.closest('div.sm_hide');
     if (!hiddenParentPassword.length) { 
         // superuser passwords mismatch
         if (superUserPassword !== superUserPasswordConfirm) {
             valid.errors = 1;
-            var notice = $('p#ms_superuser_passwords_mismatch').text();
+            var notice = $('p#sm_superuser_passwords_mismatch').text();
             valid.notices.push(notice);
         }
         // superuser password too short [should be at least 6 char]
         if (password.length && superUserPassword.length < 6) {
             valid.errors = 1;
-            var notice = $('p#ms_superuser_password_short').text();
+            var notice = $('p#sm_superuser_password_short').text();
             valid.notices.push(notice);
         }
     }
     
-    var hiddenParentEmail = email.closest('div.ms_hide');
+    var hiddenParentEmail = email.closest('div.sm_hide');
     if (!hiddenParentEmail.length) { 
         // superuser email invalid
         if (!validateEmail(superUserEmail)) {
             valid.errors = 1;
-            var notice = $('p#ms_superuser_email_invalid').text();
+            var notice = $('p#sm_superuser_email_invalid').text();
             valid.notices.push(notice);
         }
     }
@@ -288,10 +292,10 @@ function validateSuperUser(form, valid) {
 }
     
 /**
- * `
+ * Check if specified email is validly formatted.
  * 
- * @param {any} email 
- * @returns
+ * @param String email Email to validate.
+ * @returns Boolean emailReg Whether email validated or not.
  *
  */
 function validateEmail(email) {
@@ -313,18 +317,21 @@ function validateCharacters(string) {
 
 /**
  * Find all selected items for actioning
- * 
+ *
+ * @returns Object selectedItems All items selected for bulk actioning.
+ *
  */
 function getSelectedItems() {
-    var selectedItems = $('input[name="ms_items_action_selected[]"]:checked');    
+    var selectedItems = $('input[name="sm_itesm_action_selected[]"]:checked');    
 	return selectedItems;
 }
 
 /**
+ * Build list of directories and/or databases that will be deleted.
  * 
- * 
- * @param object selectedItems Collection of checked items to action.
- * @param integer mode Whether to deleting files or databases.
+ * @param Object selectedItems Collection of checked items to action.
+ * @param Integer mode Whether to deleting files or databases.
+ *
  */
 function buildDeleteList(selectedItems, mode) {
     var deleteFilesList = getDeleteList(1);
@@ -333,14 +340,14 @@ function buildDeleteList(selectedItems, mode) {
     var id;
     // delete files mode
     if (1 == mode) {
-        id = 'ms_delete_sites_files_confirm';
+        id = 'sm_delete_sites_files_confirm';
         buildDeleteListHeader(id,deleteFilesList);
         dataSrc = 'data-directory';
         appendDeleteList(selectedItems, dataSrc, deleteFilesList);
     }
     // delete databases mode
     else if (2 == mode) {
-        id = 'ms_delete_sites_databases_confirm';
+        id = 'sm_delete_sites_databases_confirm';
         buildDeleteListHeader(id,deleteDatabasesList);
         dataSrc = 'data-database';
         appendDeleteList(selectedItems, dataSrc, deleteDatabasesList);
@@ -349,11 +356,12 @@ function buildDeleteList(selectedItems, mode) {
 }
 
 /**
- * 
+ * Append names of items that will be deleted to feedback modal.
  * 
  * @param object items Collection of items from which to find data to append as notices.
  * @param string dataSrc The data attribute to get text with details of items that will be actioned.
  * @param object list The element to append notices to.
+ *
  */
 function appendDeleteList(items,dataSrc,list) {
     var appendStr = '';
@@ -374,7 +382,7 @@ function appendDeleteList(items,dataSrc,list) {
  */
 function buildDeleteListHeader(id,list) {
     var popupMessage = $('p#'+id).text();
-    $('<p class="ms_confirm_list">' + popupMessage + '</p>').insertBefore(list); 
+    $('<p class="sm_confirm_list">' + popupMessage + '</p>').insertBefore(list); 
 }
 
 /**
@@ -388,8 +396,8 @@ function buildDeleteListHeader(id,list) {
  */
 function getDeleteList(mode) {
     var list;
-    if (1 == mode) list = $('ol#ms_installed_sites_delete_files_confirm_list');
-    else list = $('ol#ms_installed_sites_delete_databases_confirm_list');
+    if (1 == mode) list = $('ol#sm_installed_sites_delete_files_confirm_list');
+    else list = $('ol#sm_installed_sites_delete_databases_confirm_list');
     return list;
 }
 
@@ -399,9 +407,9 @@ function getDeleteList(mode) {
  */
 function clearDeleteList() {
     var selectedItems = getSelectedItems();
-    $('input#ms_toggle_all').prop("checked", false);
+    $('input#sm_toggle_all').prop("checked", false);
     $.each(selectedItems, function () {this.checked = false;});
-    $('select#ms_items_action_select').val('select');
+    $('select#sm_itesm_action_select').val('select');
 }
 
 /**
@@ -415,10 +423,10 @@ function clearDeleteList() {
  */
 function spinner(i, mode){				
 	if(!i.length) return;				
-	if(mode == 'in') i.removeClass('ms_hide');
+	if(mode == 'in') i.removeClass('sm_hide');
 	else {
         setTimeout(function(){
-            $(i).addClass('ms_hide');
+            $(i).addClass('sm_hide');
         },700)
 	}
 }
@@ -436,7 +444,7 @@ function setVersionsIndexes(form, selectedItems) {
     selectedItems.each(function () {
         var p = ($(this)).parent();
         var version = p.attr('data-version-index');
-        versionIndexes += '<input name="ms_processwire_version_index[]" type="hidden" value="'+version+'">';
+        versionIndexes += '<input name="sm_processwire_version_index[]" type="hidden" value="'+version+'">';
     });
     form.append(versionIndexes);
 }
@@ -455,36 +463,36 @@ function getsiteFields() {
     
     siteFields = {
         // sections: div class
-        allSections: '.ms_section',
+        allSections: '.sm_section',
 
         // individual sections: div IDs
-        siteSection: '#ms_site_section',
-        databaseSection: '#ms_database_section',
-        superUserSection: '#ms_superuser_section',
-        filePermissionSection: '#ms_file_permissions_section',
+        siteSection: '#sm_site_section',
+        databaseSection: '#sm_database_section',
+        superUserSection: '#sm_superuser_section',
+        filePermissionSection: '#sm_file_permissions_section',
         
         // headers: div class
-        allHeaders: '.ms_setting_header',
+        allHeaders: '.sm_setting_header',
 
         // sub-section wrappers: div IDs
-        title: '#ms_site_title_wrapper',// site title
-        desc: '#ms_site_description_wrapper',// description
-        siteType: '#ms_create_site_type_wrapper',// single vs multi-site radio select
-        createMethod: '#ms_create_method_wrapper',// how site being created
-        siteDir: '#ms_site_directory_wrapper',// multi-site install directory
-        installDir: '#ms_site_install_directory_wrapper',// single-site install directory
-        pwVersion: '#ms_create_pw_version_select_wrapper',// saved values (JSON) to create site
-        httpHostNames: '#ms_http_host_names_wrapper',// cannot copy paste since need to separate by line
-        typePaste: '#ms_create_copy_paste_wrapper',// type/paste key=value, pairs to create site
-        savedConfigs: '#ms_create_json_configs_wrapper',// saved values (JSON) to create site
-        profiles: '#ms_installation_profile_wrapper',
+        title: '#sm_site_title_wrapper',// site title
+        desc: '#sm_site_description_wrapper',// description
+        siteType: '#sm_create_site_type_wrapper',// single vs multi-site radio select
+        createMethod: '#sm_create_method_wrapper',// how site being created
+        siteDir: '#sm_site_directory_wrapper',// multi-site install directory
+        installDir: '#sm_site_install_directory_wrapper',// single-site install directory
+        pwVersion: '#sm_create_pw_version_select_wrapper',// saved values (JSON) to create site
+        httpHostNames: '#sm_http_host_names_wrapper',// cannot copy paste since need to separate by line
+        typePaste: '#sm_create_copy_paste_wrapper',// type/paste key=value, pairs to create site
+        savedConfigs: '#sm_create_json_configs_wrapper',// saved values (JSON) to create site
+        profiles: '#sm_installation_profile_wrapper',
         
         // radios: input names
-        siteTypeRadio: 'input:radio[name="ms_create_site_type"]', 
-        createMethodRadio: 'input:radio[name="ms_create_method"]',
+        siteTypeRadio: 'input:radio[name="sm_create_site_type"]', 
+        createMethodRadio: 'input:radio[name="sm_create_method"]',
 
         // configurable inputs wrappers:  div classe (@note: these are the values that can be saved as JSON)
-        configurableInputs: '.ms_configurable',
+        configurableInputs: '.sm_configurable',
     };
 
     return siteFields;
@@ -527,37 +535,36 @@ function setInputs(siteTypeValue, createMethodValue) {
     var siteType;
     // creating from form
     if (createMethodValue == 1) {
-        $(allSections + ',' + allHeaders).removeClass('ms_hide');
+        $(allSections + ',' + allHeaders).removeClass('sm_hide');
         if (siteTypeValue == 1) siteType = siteDir;
         else if (siteTypeValue == 2) siteType = installDir + ',' + pwVersion;
-        $(siteType + ',' + typePaste + ',' + savedConfigs).addClass('ms_hide');
+        $(siteType + ',' + typePaste + ',' + savedConfigs).addClass('sm_hide');
     }
     // creating from type or paste
     else if (createMethodValue == 2) {
-        $(allSections + ',' + allHeaders).not(profiles).addClass('ms_hide');    
+        $(allSections + ',' + allHeaders).not(profiles).addClass('sm_hide');    
         if (siteTypeValue == 1) siteType = installDir + ',' + pwVersion + ',';
         else if (siteTypeValue == 2) siteType = '';
-        $(siteType + typePaste + ',' + profiles).removeClass('ms_hide');
+        $(siteType + typePaste + ',' + profiles).removeClass('sm_hide');
     }
     // creating from saved install configurations
     else if (createMethodValue == 3) {
-        $(allSections + ',' + allHeaders).removeClass('ms_hide');    
+        $(allSections + ',' + allHeaders).removeClass('sm_hide');    
         if (siteTypeValue == 1) siteType = siteDir;
         else if (siteTypeValue == 2) siteType = installDir + ',' + pwVersion;
-        $(siteType + ',' + typePaste + ',' + configurableInputs + ',' + filePermissionSection).addClass('ms_hide');
+        $(siteType + ',' + typePaste + ',' + configurableInputs + ',' + filePermissionSection).addClass('sm_hide');
     }
 
 
 }
 
-
 /*************************************************************/
 // READY
 
-$(document).ready(function () {
+$(document).ready(function () {    
 
     // highlight required inputs
-    var i = $('div.ms_form_wrapper input,div.ms_form_wrapper email,div.ms_form_wrapper password,div.ms_form_wrapper select, textarea#ms_create_copy_paste, div#ms_profile_upload input').not('input#ms_upload_profile_file');
+    var i = $('div.sm_form_wrapper input,div.sm_form_wrapper email,div.sm_form_wrapper password,div.sm_form_wrapper select, textarea#sm_create_copy_paste, div#sm_profile_upload input').not('input#sm_upload_profile_file');
     requiredBackgroundColor(i);
     
     // @todo:?! Not using this for now. From original PW install for showing profile screenshot
@@ -567,13 +574,13 @@ $(document).ready(function () {
     }).change(); */
 
     // init autocomplete
-    var i = $( "input#ms_timezone");
+    var i = $( "input#sm_timezone");
     timeZonesAutocomplete(i);
 
     // toggle all checkboxes in the list of item
-    $(document).on('change', 'input#ms_toggle_all', function() {
-        if ($(this).prop('checked')) $('div.InputfieldContent input:checkbox[name="ms_items_action_selected[]"]').prop('checked', true);
-        else $('div.InputfieldContent input:checkbox[name="ms_items_action_selected[]"]').prop('checked', false);
+    $(document).on('change', 'input#sm_toggle_all', function() {
+        if ($(this).prop('checked')) $('div.InputfieldContent input:checkbox[name="sm_itesm_action_selected[]"]').prop('checked', true);
+        else $('div.InputfieldContent input:checkbox[name="sm_itesm_action_selected[]"]').prop('checked', false);
     });
 
     // set inputs dynamically as required RE site creation and method types
@@ -593,23 +600,23 @@ $(document).ready(function () {
     $('select#limit').change(function () { $(this).closest('form').submit(); });
     
     // force parent page refresh on modal close
-    $('a.ms_edit_profile, a.ms_edit_config').on('pw-modal-closed', function(evt, ui) {
+    $('a.sm_edit_profile, a.sm_edit_config').on('pw-modal-closed', function(evt, ui) {
 		window.location.reload(true);
     });
     
     // variables for forms validation
-    var confirm = $('input#ms_confirm');
-    var popupData = $('span#ms_popup_data');
-    var noItemsPopupData = $('span#ms_no_items_popup_data');
-    var noActionPopupData = $('span#ms_no_action_popup_data');
+    var confirm = $('input#sm_confirm');
+    var popupData = $('span#sm_popup_data');
+    var noItemsPopupData = $('span#sm_no_itesm_popup_data');
+    var noActionPopupData = $('span#sm_no_action_popup_data');
 
     // CREATE SITE FORM VALIDATION
-    $('form#ms_create_form').submit(function (e) {
+    $('form#sm_create_form').submit(function (e) {
         var form = $(this);
         if (0 == confirm.val()) {// @todo:? this not really needed        
             var valid = {};            
             // for popup
-            var popupErrorsList = $('ol#ms_validation_errors');
+            var popupErrorsList = $('ol#sm_validation_errors');
             popupErrorsList.children().remove();    
             //+++++++++++++++++++++++++++++++++++++++++++++
             valid = validateForm(form);// returns object
@@ -627,8 +634,8 @@ $(document).ready(function () {
             // submit form
             else {                
                 confirm.val(1);
-                $('button#ms_create_btn').click();
-                var i = $('span#ms_spinner i');
+                $('button#sm_create_btn').click();
+                var i = $('span#sm_spinner i');
                 spinner(i, mode = 'in');
             }
         
@@ -637,14 +644,14 @@ $(document).ready(function () {
     })
 
     // INSTALLED SITES ACTION CONFIRM
-    $('div#ms_installed_sites_action_confirm').on('click', 'button#ms_installed_sites_action_confirm_btn', function() {
-        $('input#ms_confirm').val(1)    
-        $('button#ms_installed_btn').click();
+    $('div#sm_installed_sites_action_confirm').on('click', 'button#sm_installed_sites_action_confirm_btn', function() {
+        $('input#sm_confirm').val(1)    
+        $('button#sm_installed_btn').click();
     });
     
-    $('form#ms_installed_sites_form').submit(function (e) {
+    $('form#sm_installed_sites_form').submit(function (e) {
         var form = $(this);
-        var s = $('select#ms_items_action_select');
+        var s = $('select#sm_itesm_action_select');
         var action = s.val();
         // check if items selected
         var selectedItems = getSelectedItems();
@@ -653,8 +660,8 @@ $(document).ready(function () {
         if (0 == confirm.val() && selectedItems.length) {
             e.preventDefault();
             // remove previous lists 
-            $('p.ms_confirm_list').remove();
-            $('div#ms_installed_sites_action_confirm ol').children().remove();            
+            $('p.sm_confirm_list').remove();
+            $('div#sm_installed_sites_action_confirm ol').children().remove();            
             // files delete only
             if (action == 'delete_directory') buildDeleteList(selectedItems, 1);
             // database delete only
@@ -670,7 +677,7 @@ $(document).ready(function () {
     })
 
     // UPLOAD PROFILE FORM VALIDATION
-    $('form#ms_profile_upload_form.ms_new_profile').submit(function (e) {
+    $('form#sm_profile_upload_form.sm_new_profile').submit(function (e) {
         var form = $(this);
         if (0 == confirm.val()) {// @todo:? this not really needed
             var valid = {};            
@@ -679,15 +686,15 @@ $(document).ready(function () {
                 notices: []
             };
             // for popup
-            var popupErrors = $('div#ms_validation');
-            popupErrors.children('p.ms_error').remove();
+            var popupErrors = $('div#sm_validation');
+            popupErrors.children('p.sm_error').remove();
             //+++++++++++++++++++++++++++++++++++++++++++++
             valid = validateRequieredFields(form, valid);
 
             if (1 == valid.errors) {
                 notices = valid.notices;
                 $.each(notices, function (index, popupMessage) {
-                    popupErrors.append('<p class="ms_error">' + popupMessage + '</p>');                    
+                    popupErrors.append('<p class="sm_error">' + popupMessage + '</p>');                    
                 });
                 e.preventDefault();    
                 initPopup(popupData);
@@ -696,7 +703,7 @@ $(document).ready(function () {
             // submit form
             else {
                 confirm.val(1);
-                $('button#ms_upload_btn').click();
+                $('button#sm_upload_btn').click();
             }
         
         }
@@ -704,12 +711,12 @@ $(document).ready(function () {
     })
 
     // ADD CONFIG FORM VALIDATION
-    $('form#ms_config_add_form').submit(function (e) {        
+    $('form#sm_config_add_form').submit(function (e) {        
         var form = $(this);
         if (0 == confirm.val()) {// @todo:? this not really needed        
             var valid = {};            
             // for popup
-            var popupErrorsList = $('ol#ms_validation_errors');
+            var popupErrorsList = $('ol#sm_validation_errors');
             popupErrorsList.children().remove();    
             //+++++++++++++++++++++++++++++++++++++++++++++
             valid = validateForm(form);// returns object
@@ -727,8 +734,8 @@ $(document).ready(function () {
             // submit form
             else {                
                 confirm.val(1);
-                $('button#ms_create_btn').click();
-                var i = $('span#ms_spinner i');
+                $('button#sm_create_btn').click();
+                var i = $('span#sm_spinner i');
                 spinner(i, mode = 'in');
             }
         
@@ -737,21 +744,21 @@ $(document).ready(function () {
     })
 
     // PROCESSWIRE VERSIONS FORM
-    $('div#ms_top_action_selects select#ms_items_action_select').change(function () {
+    $('div#sm_top_action_selects select#sm_itesm_action_select').change(function () {
         var v = $(this).val();
-        if ('download' == v) $('p#ms_download_warning').fadeIn('fast').removeClass('ms_hide');
-        else $('p#ms_download_warning').fadeOut('fast').addClass('ms_hide');
+        if ('download' == v) $('p#sm_download_warning').fadeIn('fast').removeClass('sm_hide');
+        else $('p#sm_download_warning').fadeOut('fast').addClass('sm_hide');
     });
 
-    $('form#ms_processwire_versions_form').submit(function (e) {
+    $('form#sm_processwire_versions_form').submit(function (e) {
         var form = $(this);
-        var s = $('select#ms_items_action_select');
+        var s = $('select#sm_itesm_action_select');
         var action = s.val();
         // check if items selected
         var selectedItems = getSelectedItems();
         // if downloading, append version indexes to form
         if (action == 'download') {
-            var i = $('span#ms_spinner i');
+            var i = $('span#sm_spinner i');
             spinner(i, mode='in');     
             setVersionsIndexes(form, selectedItems)
         }
@@ -759,9 +766,9 @@ $(document).ready(function () {
     })
 
     // no items selected on click
-    $(document).on('click', 'button.ms_bulk_action_btn', function (e) {
+    $(document).on('click', 'button.sm_bulk_action_btn', function (e) {
         var selectedItems = getSelectedItems();
-        var actionsSelect = $('select#ms_items_action_select');
+        var actionsSelect = $('select#sm_itesm_action_select');
         if (!selectedItems.length) {
             e.preventDefault();
             initPopup(noItemsPopupData);
