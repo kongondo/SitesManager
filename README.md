@@ -1,5 +1,12 @@
 # Sites Manager
 
+## IMPORTANT
+16 September 2018
+
+**A RECENT UPDATE TO ProcessWire HAS BROKEN THIS MODULE. PLEASE DO NOT USE IT IN A PRODUCTION ENVIRONMENT UNTIL THIS IS FIXED.**
+
+########################################################
+
 Sites Manager is a module for [ProcessWire](http://processwire.com/) that allows Superusers to easily create/install ProcessWire sites *on the same server* space the module is running in. Only Superusers can use the module. You can create both **stand-alone** and **multi-sites**. 
 
 **Stand-alone or single-sites** are sites that will run in their own document root/directory with *their own* **wire and site folders, .htaccess, index.php**, etc. In other words, a *normal* ProcessWire site.
